@@ -24,3 +24,5 @@ class updateUserSchema(BaseModel):
     password: str
     profilePict: bytes
 
+class addAttendanceLogs(BaseModel):
+    status: str

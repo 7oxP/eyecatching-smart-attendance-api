@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile
 import firebase_admin
 from firebase_admin import credentials, storage
 import pyrebase
-from models import addUserSchema, loginSchema, updateUserSchema
+from models import addUserSchema, loginSchema, updateUserSchema, addAttendanceLogs
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from requests.exceptions import HTTPError
@@ -10,6 +10,8 @@ from PIL import Image
 from io import BytesIO
 from jose import JWTError, jwt
 from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
+
 
 load_dotenv()
 
@@ -37,8 +39,8 @@ bucket = storage.bucket()
 app = FastAPI(docs_url="/")
 
 
-@app.post("/addUser")
-async def addUser(userData: addUserSchema):
+@app.post("/users", tags=["Auth"])
+async def add_user(userData: addUserSchema):
     name = userData.name
     position = userData.position 
     floor = userData.floor
@@ -77,7 +79,7 @@ async def addUser(userData: addUserSchema):
         )
         
 
-@app.post("/login")
+@app.post("/login", tags=["Auth"])
 async def login(userData: loginSchema):
     username = userData.username
     password = userData.password
@@ -85,7 +87,7 @@ async def login(userData: loginSchema):
     try:
         user = auth.sign_in_with_email_and_password(
             email=f"{username}@mail.com",
-            password = password
+            password = password, tags=["Auth"]
         )
 
         print("User: ",user)
@@ -102,10 +104,10 @@ async def login(userData: loginSchema):
             )
     
 
-@app.post("/uploadProfilePict")
-async def uploadProfilePict(profilePict: UploadFile = File(...)):
+@app.post("/users/profile-picture", tags=["User"])
+async def upload_profile_pict(profile_pict: UploadFile = File(...)):
 
-    contents = await profilePict.read()
+    contents = await profile_pict.read()
     
     image = Image.open(BytesIO(contents))
     
@@ -113,7 +115,7 @@ async def uploadProfilePict(profilePict: UploadFile = File(...)):
     image.save(img_io, format="JPEG")
     img_io.seek(0)
     
-    blob = bucket.blob("profile_pictures/" + profilePict.filename)
+    blob = bucket.blob("profile_pictures/" + profile_pict.filename)
     blob.upload_from_file(img_io, content_type='image/jpeg')
     
     return JSONResponse(
@@ -123,22 +125,54 @@ async def uploadProfilePict(profilePict: UploadFile = File(...)):
         )
 
 
-@app.put("/updateUser/{userId}")
-async def updateUser(userData: updateUserSchema):
+@app.put("/users/{user_id}", tags=["User"])
+async def update_user(userData: updateUserSchema):
     pass
 
-@app.get("/getUser/{userId}")
-async def getUser():
+@app.get("/users/{user_id}", tags=["User"])
+async def get_user():
     pass
 
-@app.get("/getUserGalleryLogs/{userId}")
-async def getUserGalleryLogs():
+@app.get("/users/gallery-logs/{user_id}", tags=["User"])
+async def get_user_gallery_logs():
     pass
 
-@app.get("/getUserAttendanceLogs/{userId}")
-async def getUserAttendanceLogs():
+@app.get("/users/attendance-logs/{user_id}", tags=["User"])
+async def get_user_attendance_logs(user_id: int):
+    data = db.child("users_attendance_logs").child(1).get()
+
+    return JSONResponse(
+            {"message": "ok", "data":data.val()},
+            status_code = 201
+            )
+
+@app.get("/users/attendance-status/{user_id}", tags=["User"])
+async def get_user_attendance_status():
     pass
 
-@app.get("/getAttendanceStatus/{userId}")
-async def getUserAttendanceStatus():
-    pass
+@app.post("/users/attendance-logs/{user_id}")
+async def insert_user_attendance_logs(userData: addAttendanceLogs):
+    try:
+        timestamp = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M")
+        status = userData.status
+
+        data = {
+            "timestamp":timestamp,
+            "status":status,
+        }
+
+        # for i in range(1, 10):
+        #     insertData = db.child("users_attendance_logs").child(1).push(data)
+
+        # print(insertData)
+
+        return JSONResponse(
+            {"message": f"data successfully added!"},
+            status_code = 201
+            )
+    
+    except HTTPError:
+        raise HTTPException(
+            status_code = 401,
+            detail = f"failed to add data!"
+        )
