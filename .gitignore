@@ -161,3 +161,4 @@ cython_debug/
 
 # Service accounts
 service_accounts/*
+!service_accounts/.gitkeep
