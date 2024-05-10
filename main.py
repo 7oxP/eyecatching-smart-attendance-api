@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
-cred = credentials.Certificate("serviceAccountKey.json")
+cred = credentials.Certificate("service_accounts/serviceAccountKey.json")
 
 firebase_admin.initialize_app(cred, {'storageBucket': 'smart-attendance-da7f6.appspot.com'})
 
