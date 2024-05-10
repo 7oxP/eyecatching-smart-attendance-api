@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Depends, Header
 import firebase_admin
 from firebase_admin import credentials, storage
 import pyrebase
@@ -11,13 +11,12 @@ from io import BytesIO
 from jose import JWTError, jwt
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
+from auth.jwt_handler import encode_jwt, decode_jwt
+from auth.jwt_bearer import JWTBearer
 
 
 load_dotenv()
 
-cred = credentials.Certificate("service_accounts/serviceAccountKey.json")
-
-firebase_admin.initialize_app(cred, {'storageBucket': 'smart-attendance-da7f6.appspot.com'})
 
 firebaseConfig = {
   "apiKey": "AIzaSyAHnhBpwvVKWXWx1JVKHTrSpJgd0OnR6YA",
@@ -33,8 +32,7 @@ firebaseConfig = {
 firebase = pyrebase.initialize_app(firebaseConfig)
 auth = firebase.auth()
 db = firebase.database()
-# storage = firebase.storage()
-bucket = storage.bucket()
+storage = firebase.storage()
 
 app = FastAPI(docs_url="/")
 
@@ -53,16 +51,15 @@ async def add_user(userData: addUserSchema):
             password = password
         )
 
-
         data = {
             "user_id": user["localId"],
             "name":name,
             "position":position,
             "floor":floor,
-            "profilePictURL": "-"
+            "profile_pict_url": "-"
             }
         
-        insertData = db.child("users").push(data)
+        insertData = db.child("users").child(user["localId"]).set(data)
 
         print(user)
         print(insertData)
@@ -87,16 +84,21 @@ async def login(userData: loginSchema):
     try:
         user = auth.sign_in_with_email_and_password(
             email=f"{username}@mail.com",
-            password = password, tags=["Auth"]
+            password = password
         )
 
         print("User: ",user)
+
+        jwtEncode = encode_jwt(user["localId"], user["email"], user["idToken"])
+
         return JSONResponse(
             {
-            "message": "Successfully login!"
+            "message": "Successfully login!",
+            "token": jwtEncode
             }, 
             status_code = 200
             )
+    
     except:
         raise HTTPException(
             status_code = 401,
@@ -104,8 +106,8 @@ async def login(userData: loginSchema):
             )
     
 
-@app.post("/users/profile-picture", tags=["User"])
-async def upload_profile_pict(profile_pict: UploadFile = File(...)):
+@app.post("/users/profile-picture", tags=["User"], dependencies=[Depends(JWTBearer())])
+async def upload_profile_pict(profile_pict: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
 
     contents = await profile_pict.read()
     
@@ -114,13 +116,23 @@ async def upload_profile_pict(profile_pict: UploadFile = File(...)):
     img_io = BytesIO()
     image.save(img_io, format="JPEG")
     img_io.seek(0)
+
+    extractJWTPayload = decode_jwt(authorization)
     
-    blob = bucket.blob("profile_pictures/" + profile_pict.filename)
-    blob.upload_from_file(img_io, content_type='image/jpeg')
-    
+    getUserId = extractJWTPayload["user_id"]
+    getUserIdToken = extractJWTPayload["user_id_token"]
+
+    uploadProfilePicture = storage.child("profile_pictures/" + profile_pict.filename).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
+
+    getProfilePictureURL = storage.child("profile_pictures/" + profile_pict.filename).get_url(getUserIdToken)
+
+    updateProfilePictURL = db.child("users").child(getUserId).update({"profile_pict_url":getProfilePictureURL})
+
     return JSONResponse(
         {
-            "message": "Image successfully uploaded!"}, 
+            "message": "Image successfully uploaded!",
+            "profile_picture_url": getProfilePictureURL,
+        },
             status_code=200
         )
 
@@ -133,24 +145,24 @@ async def update_user(userData: updateUserSchema):
 async def get_user():
     pass
 
-@app.get("/users/gallery-logs/{user_id}", tags=["User"])
+@app.get("/users/{user_id}/gallery-logs", tags=["User"])
 async def get_user_gallery_logs():
     pass
 
-@app.get("/users/attendance-logs/{user_id}", tags=["User"])
-async def get_user_attendance_logs(user_id: int):
-    data = db.child("users_attendance_logs").child(1).get()
+@app.get("/users/{user_id}/attendance-logs", tags=["User"])
+async def get_user_attendance_logs(user_id: str):
+    data = db.child("users_attendance_logs").child("1").get()
 
     return JSONResponse(
             {"message": "ok", "data":data.val()},
             status_code = 201
             )
 
-@app.get("/users/attendance-status/{user_id}", tags=["User"])
+@app.get("/users/{user_id}/attendance-status", tags=["User"])
 async def get_user_attendance_status():
     pass
 
-@app.post("/users/attendance-logs/{user_id}")
+@app.post("/users/{user_id}/attendance-logs")
 async def insert_user_attendance_logs(userData: addAttendanceLogs):
     try:
         timestamp = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M")
