@@ -9,13 +9,13 @@ secret_key = os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHMS")
 expire_time = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 
-def encode_jwt(user_id: str, username: str, email: str):
-    expires = datetime.now(timezone.utc) + timedelta(seconds=5)
+def encode_jwt(user_id: str, email: str, user_id_token: str):
+    expires = datetime.now(timezone.utc) + timedelta(minutes=120)
     
     payload = {
         "user_id": user_id,
-        "username": username,
         "email": email,
+        "user_id_token": user_id_token,
         "exp_time": expires.strftime("%Y-%m-%d %H:%M:%S") 
     }
     return jwt.encode(payload, key=secret_key)
@@ -28,13 +28,13 @@ def decode_jwt(token: str):
     # return decoded_token
     return decoded_token if exp_time >= datetime.now(timezone.utc).replace(tzinfo=timezone.utc) else None
 
-result = encode_jwt("12", "asep", "emaail.com")
+# result = encode_jwt("12")
 # print(timedelta(minutes=15))
 # print(datetime.now(timezone.utc)+timedelta(seconds=120))
 
 # print(jws.decode(result, secret_key, algorithms=['HS256']))
-print(result)
+# print(result)
 
-print(decode_jwt(result))
+# print(decode_jwt(result))
 
 
