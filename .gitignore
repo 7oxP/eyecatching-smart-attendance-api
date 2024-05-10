@@ -160,4 +160,4 @@ cython_debug/
 #.idea/
 
 # Service accounts
-service_accounts/
+service_accounts/*
