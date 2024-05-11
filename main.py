@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 from auth.jwt_handler import encode_jwt, decode_jwt
 from auth.jwt_bearer import JWTBearer
+import os
 
 
 load_dotenv()
@@ -89,7 +90,22 @@ async def login(userData: loginSchema):
 
         print("User: ",user)
 
-        jwtEncode = encode_jwt(user["localId"], user["email"], user["idToken"])
+        userRole = 2
+
+        if username == "admin":
+            userRole = os.getenv("ADMIN_ROLE")
+
+            jwtEncode = encode_jwt(user["localId"], user["email"], userRole , user["idToken"])
+
+            return JSONResponse(
+                {
+                "message": "Successfully login!",
+                "token": jwtEncode
+                }, 
+                status_code = 200
+                )
+        
+        jwtEncode = encode_jwt(user["localId"], user["email"], userRole , user["idToken"])
 
         return JSONResponse(
             {
@@ -97,7 +113,8 @@ async def login(userData: loginSchema):
             "token": jwtEncode
             }, 
             status_code = 200
-            )
+                )
+
     
     except:
         raise HTTPException(
@@ -106,7 +123,7 @@ async def login(userData: loginSchema):
             )
     
 
-@app.post("/users/profile-picture", tags=["User"], dependencies=[Depends(JWTBearer())])
+@app.post("/users/profile-picture", tags=["User"])
 async def upload_profile_pict(profile_pict: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
 
     contents = await profile_pict.read()
@@ -141,20 +158,42 @@ async def upload_profile_pict(profile_pict: UploadFile = File(...), authorizatio
 async def update_user(userData: updateUserSchema):
     pass
 
+
+@app.get("/users", tags=["User"])
+async def get_all_users(authorization: str = Depends(JWTBearer())):
+    extractJWTPayload = decode_jwt(authorization)
+    getUserRole = extractJWTPayload["role"]
+
+    if getUserRole != os.getenv("ADMIN_ROLE"):
+        return JSONResponse(
+            {
+                "message": "User unauthorized",
+            },
+            status_code=401
+        )
+    
+
 @app.get("/users/{user_id}", tags=["User"])
-async def get_user():
+async def get_user_by_id():
     pass
 
 @app.get("/users/{user_id}/gallery-logs", tags=["User"])
 async def get_user_gallery_logs():
     pass
 
-@app.get("/users/{user_id}/attendance-logs", tags=["User"])
-async def get_user_attendance_logs(user_id: str):
-    data = db.child("users_attendance_logs").child("1").get()
+@app.get("/users/attendance-logs", tags=["User"])
+async def get_user_attendance_logs(user_id: str, authorization: str = Depends(JWTBearer())):
+
+    extractJWTPayload = decode_jwt(authorization)
+
+    getUserId = extractJWTPayload["user_id"]
+
+    data = db.child("users_attendance_logs").child(getUserId).get()
 
     return JSONResponse(
-            {"message": "ok", "data":data.val()},
+            {"message": "ok", 
+             "data": data.val()
+             },
             status_code = 201
             )
 
@@ -162,19 +201,35 @@ async def get_user_attendance_logs(user_id: str):
 async def get_user_attendance_status():
     pass
 
-@app.post("/users/{user_id}/attendance-logs")
-async def insert_user_attendance_logs(userData: addAttendanceLogs):
+@app.post("/users/attendance-logs")
+async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization: str = Depends(JWTBearer())):
+
     try:
-        timestamp = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M")
+        extractJWTPayload = decode_jwt(authorization)
+        getUserId = extractJWTPayload["user_id"]
+
+
         status = userData.status
+        timestamp = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M")
+        capturedFace = None
+
 
         data = {
-            "timestamp":timestamp,
             "status":status,
+            "timestamp":timestamp,
+            "captured_face":capturedFace,
         }
 
-        # for i in range(1, 10):
-        #     insertData = db.child("users_attendance_logs").child(1).push(data)
+        getTotalNodes = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+        totalNodes = None
+
+        try:
+            totalNodes = sorted(getTotalNodes)[-1].split("_")[-1]
+            totalNodes = int(totalNodes)        
+        except:
+            totalNodes = 0
+        
+        insertData = db.child("users_attendance_logs").child(getUserId).child(f"attendance_{totalNodes+1}").set(data)
 
         # print(insertData)
 
@@ -188,3 +243,7 @@ async def insert_user_attendance_logs(userData: addAttendanceLogs):
             status_code = 401,
             detail = f"failed to add data!"
         )
+
+@app.get("/employee", dependencies=[Depends(JWTBearer())])
+async def get_employee_list():
+        pass
