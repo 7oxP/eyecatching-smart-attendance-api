@@ -1,6 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Depends, Header
-import firebase_admin
-from firebase_admin import credentials, storage
+from fastapi import FastAPI, APIRouter, File, UploadFile, Depends, Path
 import pyrebase
 from models import addUserSchema, loginSchema, updateUserSchema, addAttendanceLogs
 from fastapi.responses import JSONResponse
@@ -15,19 +13,17 @@ from auth.jwt_handler import encode_jwt, decode_jwt
 from auth.jwt_bearer import JWTBearer
 import os
 
-
 load_dotenv()
 
-
 firebaseConfig = {
-  "apiKey": "AIzaSyAHnhBpwvVKWXWx1JVKHTrSpJgd0OnR6YA",
-  "authDomain": "smart-attendance-da7f6.firebaseapp.com",
-  "projectId": "smart-attendance-da7f6",
-  "storageBucket": "smart-attendance-da7f6.appspot.com",
-  "messagingSenderId": "382545441680",
-  "appId": "1:382545441680:web:b704e8b2d8024aa61fb915",
-  "measurementId": "G-0316NWF9NF",
-  "databaseURL": "https://smart-attendance-da7f6-default-rtdb.asia-southeast1.firebasedatabase.app"
+  "apiKey": os.getenv("API_KEY"),
+  "authDomain": os.getenv("AUTH_DOMAIN"),
+  "projectId": os.getenv("PROJECT_ID"),
+  "storageBucket": os.getenv("STORAGE_BUCKET"),
+  "messagingSenderId": os.getenv("MESSAGING_SENDER_ID"),
+  "appId": os.getenv("APP_ID"),
+  "measurementId": os.getenv("MEASUREMENT_ID"),
+  "databaseURL": os.getenv("DATABASE_URL"),
 }
 
 firebase = pyrebase.initialize_app(firebaseConfig)
@@ -36,6 +32,7 @@ db = firebase.database()
 storage = firebase.storage()
 
 app = FastAPI(docs_url="/")
+router = APIRouter()
 
 
 @app.post("/users", tags=["Auth"])
@@ -154,54 +151,34 @@ async def upload_profile_pict(profile_pict: UploadFile = File(...), authorizatio
         )
 
 
-@app.put("/users/{user_id}", tags=["User"])
-async def update_user(userData: updateUserSchema):
-    pass
-
-
-@app.get("/users", tags=["User"])
-async def get_all_users(authorization: str = Depends(JWTBearer())):
-    extractJWTPayload = decode_jwt(authorization)
-    getUserRole = extractJWTPayload["role"]
-
-    if getUserRole != os.getenv("ADMIN_ROLE"):
-        return JSONResponse(
-            {
-                "message": "User unauthorized",
-            },
-            status_code=401
-        )
-    
-
-@app.get("/users/{user_id}", tags=["User"])
-async def get_user_by_id():
-    pass
-
-@app.get("/users/{user_id}/gallery-logs", tags=["User"])
-async def get_user_gallery_logs():
-    pass
-
 @app.get("/users/attendance-logs", tags=["User"])
-async def get_user_attendance_logs(user_id: str, authorization: str = Depends(JWTBearer())):
+async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
     extractJWTPayload = decode_jwt(authorization)
 
     getUserId = extractJWTPayload["user_id"]
 
-    data = db.child("users_attendance_logs").child(getUserId).get()
+    getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+
+    dataAttendance = {}
+    print(list(getChildNode))
+
+    for childNode in list(getChildNode):
+        print(childNode)
+        getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
+        
+        dataAttendance[childNode] = dict(getAttendances)
+    
+    print("data attendance:",dataAttendance)
 
     return JSONResponse(
-            {"message": "ok", 
-             "data": data.val()
-             },
-            status_code = 201
-            )
+        {"message": "ok",
+         "data": dataAttendance,
+        }, status_code=200
+        )
 
-@app.get("/users/{user_id}/attendance-status", tags=["User"])
-async def get_user_attendance_status():
-    pass
 
-@app.post("/users/attendance-logs")
+@app.post("/users/attendance-logs", tags=["User"])
 async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization: str = Depends(JWTBearer())):
 
     try:
@@ -244,6 +221,36 @@ async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization
             detail = f"failed to add data!"
         )
 
-@app.get("/employee", dependencies=[Depends(JWTBearer())])
-async def get_employee_list():
-        pass
+
+@app.get("/users/{user_id}/gallery-logs", tags=["User"])
+async def get_user_gallery_logs():
+    pass
+
+@app.get("/users/{user_id}/attendance-status", tags=["User"])
+async def get_user_attendance_status():
+    pass
+
+@app.get("/users/{user_id}", tags=["User"])
+async def get_user_by_id(user_id: int = Path(...)):
+    user = user_id
+    print(user)
+    return (user)
+
+@app.put("/users/{user_id}", tags=["User"])
+async def update_user(userData: updateUserSchema):
+    pass
+
+
+@app.get("/users", tags=["User"])
+async def get_all_users(authorization: str = Depends(JWTBearer())):
+    extractJWTPayload = decode_jwt(authorization)
+    getUserRole = extractJWTPayload["role"]
+
+    if getUserRole != os.getenv("ADMIN_ROLE"):
+        return JSONResponse(
+            {
+                "message": "User unauthorized",
+            },
+            status_code=401
+        )
+    
