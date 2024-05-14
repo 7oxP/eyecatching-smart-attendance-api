@@ -8,6 +8,7 @@ from io import BytesIO
 from config.firebase_config import firebase_config
 
 firebase = pyrebase.initialize_app(firebase_config())
+db = firebase.database()
 storage = firebase.storage()
 
 async def upload_profile_picture(image_file: UploadFile = File(...), folder_path: str = None, authorization: str = Depends(JWTBearer())):
@@ -38,3 +39,29 @@ async def upload_profile_picture(image_file: UploadFile = File(...), folder_path
         },
             status_code=200
         )
+
+async def upload_captured_image(image_file: UploadFile = File(...), folder_path: str = None, user_id: int = None):
+    contents = await image_file.read()
+    
+    image = Image.open(BytesIO(contents))
+    
+    img_io = BytesIO()
+    image.save(img_io, format="JPEG")
+    img_io.seek(0)
+
+    getUserData = db.child("users").child().get()
+
+    # uploadImage = storage.child(folder_path + image_file.filename).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
+
+    # getImageURL = storage.child(folder_path + image_file.filename).get_url(getUserIdToken)
+
+    # updateImageURL = db.child("users").child(getUserId).update({"profile_pict_url":getImageURL})
+
+    return JSONResponse(
+        {
+            "message": "Image successfully uploaded!",
+            # "image_url": getImageURL
+        },
+            status_code=200
+        )
+
