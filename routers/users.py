@@ -1,7 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, Depends, Path
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-from requests.exceptions import HTTPError
 from PIL import Image
 from io import BytesIO
 from schemas.pydantic_schema import updateUserSchema, addAttendanceLogs
@@ -86,11 +85,11 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
 
 @router.post("/users/attendance-logs")
-async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization: str = Depends(JWTBearer())):
+async def insert_user_attendance_logs(userData: addAttendanceLogs):
 
     try:
-        extractJWTPayload = decode_jwt(authorization)
-        getUserId = extractJWTPayload["user_id"]
+        getNodesName = db.child("users").order_by_child("user_id").equal_to(userData.user_id).get().val()
+        getNodesName = next(iter(getNodesName))
 
 
         status = userData.status
@@ -104,7 +103,7 @@ async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization
             "captured_face":capturedFace,
         }
 
-        getTotalNodes = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+        getTotalNodes = db.child("users_attendance_logs").child(getNodesName).shallow().get().val()
         totalNodes = None
 
         try:
@@ -113,7 +112,7 @@ async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization
         except:
             totalNodes = 0
         
-        insertData = db.child("users_attendance_logs").child(getUserId).child(f"attendance_{totalNodes+1}").set(data)
+        insertData = db.child("users_attendance_logs").child(getNodesName).child(f"attendance_{totalNodes+1}").set(data)
 
         # print(insertData)
 
@@ -122,7 +121,7 @@ async def insert_user_attendance_logs(userData: addAttendanceLogs, authorization
             status_code = 201
             )
     
-    except HTTPError:
+    except Exception:
         raise HTTPException(
             status_code = 401,
             detail = f"failed to add data!"
