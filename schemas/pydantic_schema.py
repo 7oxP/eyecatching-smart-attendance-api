@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from fastapi import File, UploadFile
 
 class addUserSchema(BaseModel):
     name: str
