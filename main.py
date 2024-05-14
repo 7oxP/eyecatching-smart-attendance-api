@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from routers import auth, users
 
 app = FastAPI(docs_url="/")
