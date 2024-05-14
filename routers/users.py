@@ -1,9 +1,8 @@
 from fastapi import APIRouter, File, UploadFile, Depends, Path, Form
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import HTTPException
 from PIL import Image
 from io import BytesIO
-from schemas.pydantic_schema import updateUserSchema, addAttendanceLogs
+from schemas.pydantic_schema import updateUserSchema
 import pyrebase
 from config.firebase_config import firebase_config
 from auth.jwt_handler import decode_jwt
