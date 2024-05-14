@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from fastapi import Form
 
 class addUserSchema(BaseModel):
     id_number: int
@@ -58,22 +59,7 @@ class updateUserSchema(BaseModel):
                     "floor": 20,
                     "email": "user@xl.com",
                     "password": "p4ssw0rd",
-                    "profile_pict": "uploadFile.jpg"
-                }
-            ]
-        }
-    }
-
-class addAttendanceLogs(BaseModel):
-    user_id: int
-    status: str
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "user_id": 10,
-                    "status": "presence",
+                    "profile_pict": "imageName.jpg"
                 }
             ]
         }

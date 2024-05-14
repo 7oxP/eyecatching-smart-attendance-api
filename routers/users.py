@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Depends, Path
+from fastapi import APIRouter, File, UploadFile, Depends, Path, Form
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from PIL import Image
@@ -11,6 +11,8 @@ from auth.jwt_bearer import JWTBearer
 from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
+from services.upload_file_service import upload_profile_picture, upload_captured_image
+import json
 
 load_dotenv()
 
@@ -85,33 +87,37 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
 
 @router.post("/users/attendance-logs")
-async def insert_user_attendance_logs(userData: addAttendanceLogs):
+async def insert_user_attendance_logs(user_id: int = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
 
     try:
-        getNodesName = db.child("users").order_by_child("user_id").equal_to(userData.user_id).get().val()
+        getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
         getNodesName = next(iter(getNodesName))
 
-
-        status = userData.status
+        status = status
         timestamp = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M")
-        capturedFace = None
+        captured_image = image_file
 
+        uploadCapturedImage = await upload_captured_image(captured_image, "captured_images/", user_id, getNodesName)
+        getCapturedImageURL = uploadCapturedImage.body
+        getCapturedImageURL = json.loads(getCapturedImageURL)
+
+        capturedImageURL = getCapturedImageURL["image_url"]
 
         data = {
-            "status":status,
-            "timestamp":timestamp,
-            "captured_face":capturedFace,
+            "status": status,
+            "timestamp": timestamp,
+            "captured_face_url": capturedImageURL,
         }
 
         getTotalNodes = db.child("users_attendance_logs").child(getNodesName).shallow().get().val()
-        totalNodes = None
+        totalNodes = 0
 
         try:
             totalNodes = sorted(getTotalNodes)[-1].split("_")[-1]
             totalNodes = int(totalNodes)        
         except:
             totalNodes = 0
-        
+                
         insertData = db.child("users_attendance_logs").child(getNodesName).child(f"attendance_{totalNodes+1}").set(data)
 
         # print(insertData)
@@ -121,11 +127,12 @@ async def insert_user_attendance_logs(userData: addAttendanceLogs):
             status_code = 201
             )
     
-    except Exception:
-        raise HTTPException(
-            status_code = 401,
-            detail = f"failed to add data!"
-        )
+    except Exception as e:
+        # raise HTTPException(
+        #     status_code = 401,
+        #     detail = f"failed to add data!"
+        # )
+        print(e)
 
 
 @router.get("/users/{user_id}/gallery-logs")
