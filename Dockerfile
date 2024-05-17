@@ -13,5 +13,8 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # 
 COPY . /app
 
+#
+EXPOSE 8080
+
 # 
 CMD ["fastapi", "run", "--port", "8080"]
