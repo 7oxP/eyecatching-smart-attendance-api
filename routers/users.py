@@ -31,59 +31,82 @@ router = APIRouter(
 @router.post("/users/profile-picture")
 async def upload_profile_pict(profile_pict: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
 
-    contents = await profile_pict.read()
-    
-    image = Image.open(BytesIO(contents))
-    
-    img_io = BytesIO()
-    image.save(img_io, format="JPEG")
-    img_io.seek(0)
+    try:
+        contents = await profile_pict.read()
+        
+        image = Image.open(BytesIO(contents))
+        
+        img_io = BytesIO()
+        image.save(img_io, format="JPEG")
+        img_io.seek(0)
 
-    extractJWTPayload = decode_jwt(authorization)
-    
-    getUserId = extractJWTPayload["user_id"]
-    getUserIdToken = extractJWTPayload["user_id_token"]
+        extractJWTPayload = decode_jwt(authorization)
+        
+        getUserId = extractJWTPayload["user_id"]
+        getUserIdToken = extractJWTPayload["user_id_token"]
 
-    uploadProfilePicture = storage.child("profile_pictures/" + profile_pict.filename).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
+        uploadProfilePicture = storage.child("profile_pictures/" + profile_pict.filename).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
 
-    getProfilePictureURL = storage.child("profile_pictures/" + profile_pict.filename).get_url(getUserIdToken)
+        getProfilePictureURL = storage.child("profile_pictures/" + profile_pict.filename).get_url(getUserIdToken)
 
-    updateProfilePictURL = db.child("users").child(getUserId).update({"profile_pict_url":getProfilePictureURL})
+        updateProfilePictURL = db.child("users").child(getUserId).update({"profile_pict_url":getProfilePictureURL})
 
-    return JSONResponse(
-        {
-            "message": "Image successfully uploaded!",
-            "profile_picture_url": getProfilePictureURL,
-        },
-            status_code=200
-        )
+        return JSONResponse(
+            {
+                "message": "Image successfully uploaded!",
+                "profile_picture_url": getProfilePictureURL,
+            },
+                status_code=200
+            )
+    except Exception as err:
+        return JSONResponse(
+            {
+                "message": str(err)
+            },
+                status_code=500
+            )
 
 
 @router.get("/users/attendance-logs")
 async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
-    extractJWTPayload = decode_jwt(authorization)
+    try:
+        extractJWTPayload = decode_jwt(authorization)
 
-    getUserId = extractJWTPayload["user_id"]
+        getUserId = extractJWTPayload["user_id"]
 
-    getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+        getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
 
-    dataAttendance = {}
-    print(list(getChildNode))
+        if getChildNode is None:
+            return JSONResponse(
+            {"message": "User does not have any attendance logs",
+            "data": None,
+            }, status_code=200
+            )
 
-    for childNode in list(getChildNode):
-        print(childNode)
-        getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
+        dataAttendance = {}
+        print(list(getChildNode))
+
+        for childNode in list(getChildNode):
+            print(childNode)
+            getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
+            
+            dataAttendance[childNode] = dict(getAttendances)
         
-        dataAttendance[childNode] = dict(getAttendances)
-    
-    print("data attendance:",dataAttendance)
+        print("data attendance:",dataAttendance)
 
-    return JSONResponse(
-        {"message": "ok",
-         "data": dataAttendance,
-        }, status_code=200
-        )
+        return JSONResponse(
+            {"message": "ok",
+            "data": dataAttendance,
+            }, status_code=200
+            )
+    
+    except Exception as err:
+        return JSONResponse(
+            {"message": str(err),
+            "data": None,
+            }, status_code=500
+            )
 
 
 @router.post("/users/attendance-logs")
@@ -127,13 +150,12 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
             status_code = 201
             )
     
-    except Exception as e:
-        # raise HTTPException(
-        #     status_code = 401,
-        #     detail = f"failed to add data!"
-        # )
-        print(e)
-
+    except Exception as err:
+        return JSONResponse(
+            {"message": str(err),
+            "data": None,
+            }, status_code=500
+            )
 
 @router.get("/users/{user_id}/gallery-logs")
 async def get_user_gallery_logs():
