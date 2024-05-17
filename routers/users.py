@@ -30,41 +30,9 @@ router = APIRouter(
 
 @router.post("/users/profile-picture")
 async def upload_profile_pict(profile_pict: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
+    uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
 
-    try:
-        contents = await profile_pict.read()
-        
-        image = Image.open(BytesIO(contents))
-        
-        img_io = BytesIO()
-        image.save(img_io, format="JPEG")
-        img_io.seek(0)
-
-        extractJWTPayload = decode_jwt(authorization)
-        
-        getUserId = extractJWTPayload["user_id"]
-        getUserIdToken = extractJWTPayload["user_id_token"]
-
-        uploadProfilePicture = storage.child("profile_pictures/" + profile_pict.filename).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
-
-        getProfilePictureURL = storage.child("profile_pictures/" + profile_pict.filename).get_url(getUserIdToken)
-
-        updateProfilePictURL = db.child("users").child(getUserId).update({"profile_pict_url":getProfilePictureURL})
-
-        return JSONResponse(
-            {
-                "message": "Image successfully uploaded!",
-                "profile_picture_url": getProfilePictureURL,
-            },
-                status_code=200
-            )
-    except Exception as err:
-        return JSONResponse(
-            {
-                "message": str(err)
-            },
-                status_code=500
-            )
+    return uploadProfilePict
 
 
 @router.get("/users/attendance-logs")
