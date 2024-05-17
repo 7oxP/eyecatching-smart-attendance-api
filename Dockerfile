@@ -2,16 +2,19 @@
 FROM python:3.9
 
 # 
-WORKDIR /code
+WORKDIR /app
 
 # 
-COPY ./requirements.txt /code/requirements.txt
+COPY ./requirements.txt /app/requirements.txt
 
 # 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # 
-COPY . /code/app
+COPY . /app
+
+#
+EXPOSE 8080
 
 # 
-CMD ["fastapi", "run", "app/main.py", "--port", "80"]
+CMD ["fastapi", "run", "--port", "8080"]
