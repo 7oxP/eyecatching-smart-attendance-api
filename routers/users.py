@@ -34,52 +34,9 @@ async def upload_profile_pict(profile_pict: UploadFile = File(...), authorizatio
 
     return uploadProfilePict
 
-
 @router.get("/users/attendance-logs")
-async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
-
-    try:
-        extractJWTPayload = decode_jwt(authorization)
-
-        getUserId = extractJWTPayload["user_id"]
-
-        getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
-
-        if getChildNode is None:
-            return JSONResponse(
-            {
-            "message": "User does not have any attendance logs",
-            "operation_status": operationStatus.get("repoError"),
-            "data": None,
-            }, status_code=200
-            )
-
-        dataAttendance = {}
-        print(list(getChildNode))
-
-        for childNode in list(getChildNode):
-            print(childNode)
-            getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
-            
-            dataAttendance[childNode] = dict(getAttendances)
-        
-        print("data attendance:",dataAttendance)
-
-        return JSONResponse(
-            {"message": "Ok",
-            "operation_status": operationStatus.get("success"),
-            "data": dataAttendance,
-            }, status_code=200
-            )
-    
-    except Exception as err:
-        return JSONResponse(
-            {
-            "message": str(err),
-            "data": None,
-            }, status_code=500
-            )
-
+async def get_all_user_attendance_logs():
+    pass
 
 @router.post("/users/attendance-logs")
 async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
@@ -136,6 +93,52 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
             }, status_code=500
             )
 
+@router.get("/users/me/attendance-logs")
+async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
+
+    try:
+        extractJWTPayload = decode_jwt(authorization)
+
+        getUserId = extractJWTPayload["user_id"]
+
+        getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+
+        if getChildNode is None:
+            return JSONResponse(
+            {
+            "message": "User does not have any attendance logs",
+            "operation_status": operationStatus.get("repoError"),
+            "data": None,
+            }, status_code=200
+            )
+
+        dataAttendance = {}
+        print(list(getChildNode))
+
+        for childNode in list(getChildNode):
+            print(childNode)
+            getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
+            
+            dataAttendance[childNode] = dict(getAttendances)
+        
+        print("data attendance:",dataAttendance)
+
+        return JSONResponse(
+            {
+            "message": "User's attendance successfully added!",
+            "operation_status": operationStatus.get("success"),
+            "data": dataAttendance,
+            }, status_code=200
+            )
+    
+    except Exception as err:
+        return JSONResponse(
+            {
+            "message": str(err),
+            "data": None,
+            }, status_code=500
+            )
+
 @router.get("/users/{user_id}/gallery-logs")
 async def get_user_gallery_logs():
     pass
@@ -180,7 +183,6 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
 
 @router.get("/users/{user_id}")
 async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
-    print(user_id)
     try:
         extractJWTPayload = decode_jwt(authorization)
         getUserRole = extractJWTPayload["role"]
@@ -197,9 +199,18 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             )
         
         getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+
+        if not getNodesName:
+            return JSONResponse(
+            {
+            "message": f"There is no user with user id {user_id}",
+            "operation_status": operationStatus.get("repoError"),
+            "data": None
+            }, 
+            status_code=400
+            )
+        
         getNodesName = next(iter(getNodesName))
-
-
         getUsers = db.child("users").child(getNodesName).get().val()
         
         return JSONResponse(
@@ -217,7 +228,7 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             "message": str(err),
             "data": None
             }, 
-            status_code=404
+            status_code=400
             )
 
 @router.put("/users/{user_id}")
