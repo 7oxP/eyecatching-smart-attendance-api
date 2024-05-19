@@ -62,13 +62,12 @@ def validate_login_form(email: str = Form(...), password: str = Form(...)) -> lo
         raise HTTPException(status_code=400, detail=e.errors())
 
 class updateUserSchema(BaseModel):
-    name: Optional[str] = "LOL"
-    floor: Optional[int] = 3
+    name: Optional[str]
+    floor: Optional[int]
     # start_time: str
     # end_time: str
-    email: Optional[EmailStr] = "LOL"
-    password: Optional[str] = "LOL"
-    profile_pict_url: Optional[str] = "LOL"
+    email: Optional[EmailStr]
+    profile_pict_url: Optional[str]
 
     model_config = {
         "json_schema_extra": {
@@ -77,7 +76,6 @@ class updateUserSchema(BaseModel):
                     "name": "XL User",
                     "floor": 20,
                     "email": "user@xl.com",
-                    "password": "p4ssw0rd",
                     "profile_pict": "imageName.jpg"
                 }
             ]
@@ -85,13 +83,12 @@ class updateUserSchema(BaseModel):
     }
 
 def validate_update_user_form(  
-                            name: str = Form(...),
-                            floor: int = Form(...),
-                            email: str = Form(...),
-                            password: str = Form(...),
-                            profile_pict_url: str = Form(...),
+                            name: Optional[str] = Form(None),
+                            floor: Optional[int] = Form(None),
+                            email: Optional[EmailStr] = Form(None),
+                            profile_pict_url: Optional[str] = Form(None),
                           ) -> updateUserSchema:
     try:
-        return addUserSchema(name=name, floor=floor, email=email, password=password, profile_pict_url=profile_pict_url)
+        return updateUserSchema(name=name, floor=floor, email=email, profile_pict_url=profile_pict_url)
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=e.errors())

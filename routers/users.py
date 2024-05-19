@@ -11,6 +11,8 @@ import os
 from dotenv import load_dotenv
 from services.upload_file_service import upload_profile_picture, upload_captured_image
 import json
+from constants.operation_status import operationStatus
+
 
 load_dotenv()
 
@@ -47,6 +49,7 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
             return JSONResponse(
             {
             "message": "User does not have any attendance logs",
+            "operation_status": operationStatus.get("repoError"),
             "data": None,
             }, status_code=200
             )
@@ -63,14 +66,16 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
         print("data attendance:",dataAttendance)
 
         return JSONResponse(
-            {"message": "ok",
+            {"message": "Ok",
+            "operation_status": operationStatus.get("success"),
             "data": dataAttendance,
             }, status_code=200
             )
     
     except Exception as err:
         return JSONResponse(
-            {"message": str(err),
+            {
+            "message": str(err),
             "data": None,
             }, status_code=500
             )
@@ -92,7 +97,10 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
 
         if getAttendanceTime:
             return JSONResponse(
-            {"message": f"User's already attended!"},
+            {
+            "message": f"User is already attended!",
+            "operation_status": operationStatus.get("repoError"),
+            },
             status_code = 409
             )
         
@@ -113,7 +121,8 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
 
 
         return JSONResponse(
-            {"message": f"data successfully added!",
+            {"message": "Data successfully added!",
+            "operation_status": operationStatus.get("success"),
              "data": data
              },
             status_code = 201
@@ -121,7 +130,8 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
     
     except Exception as err:
         return JSONResponse(
-            {"message": str(err),
+            {
+            "message": str(err),
             "data": None,
             }, status_code=500
             )
@@ -146,13 +156,17 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
         
         if getUserLastAttendanceDate != currentDate:
             return JSONResponse(
-            {"message": "the user has not checked in yet",
+            {
+            "message": "The user has not checked in yet",
+            "operation_status": operationStatus.get("success"),
             "attendance_status": "absent",
             }, status_code=200
             )
         
         return JSONResponse(
-            {"message": "the user has checked in",
+            {
+            "message": "The user has checked in",
+            "operation_status": operationStatus.get("success"),
             "attendance_status": "present",
             }, status_code=200
             )
@@ -176,6 +190,8 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             return JSONResponse(
                 {
                     "message": "User unauthorized",
+                    "operation_status": operationStatus.get("unauthorizedAccess"),
+
                 },
                 status_code=401
             )
@@ -189,6 +205,7 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
         return JSONResponse(
             {
             "message":"success",
+            "operation_status": operationStatus.get("success"),
             "data": getUsers
             }, 
             status_code=200
@@ -204,9 +221,65 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             )
 
 @router.put("/users/{user_id}")
-async def update_user(userData: updateUserSchema = Depends(validate_update_user_form), user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
-   return None
+async def update_user(profile_pict: UploadFile = File(None), userData: updateUserSchema = Depends(validate_update_user_form), user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
     
+    try:        
+        extractJWTPayload = decode_jwt(authorization)
+        getUserRole = extractJWTPayload["role"]
+        adminRole = os.getenv("ADMIN_ROLE")
+
+        if getUserRole != int(adminRole):
+            return JSONResponse(
+                {
+                    "message": "User unauthorized",
+                    "operation_status": operationStatus.get("unauthorizedAccess"),
+                },
+                status_code=401
+            )
+        
+        uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
+        extractUploadProfilePictData = uploadProfilePict.body
+        extractUploadProfilePictData = json.loads(extractUploadProfilePictData.decode('utf-8'))
+
+        getProfilePictURL = extractUploadProfilePictData
+        data = userData.model_dump(exclude_none=True)
+        
+        if getProfilePictURL["operation_status"] == operationStatus.get("success"):
+            data["profile_pict_url"] = getProfilePictURL["profile_picture_url"]
+
+        if not data:
+            return JSONResponse(
+            {
+                "message": "There is no data sent!",
+                "operation_status": operationStatus.get("fieldValidationError"),
+                "data": None
+            },
+            status_code=422
+            )
+        
+        getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        getNodesName = next(iter(getNodesName))
+        
+        updateData = db.child("users").child(getNodesName).update(data)
+        
+        
+        return JSONResponse(
+            {
+                "message": "User's data successfully updated!",
+                "operation_status": operationStatus.get("success"),
+                "data": data
+            },
+            status_code=201
+        )
+
+    except Exception as err:
+        return JSONResponse(
+            {
+                "message": str(err),
+                "data": None
+            },
+            status_code=400
+        )
 
 @router.get("/users")
 async def get_all_users(authorization: str = Depends(JWTBearer())):
@@ -218,14 +291,18 @@ async def get_all_users(authorization: str = Depends(JWTBearer())):
         return JSONResponse(
             {
                 "message": "User unauthorized",
+                "operation_status": operationStatus.get("unauthorizedAccess"),
             },
             status_code=401
         )
     
     getUsers = db.child("users").get().val()
     
-    return JSONResponse({"message":"success",
-                         "data": getUsers
-                         }, 
-                         status_code=200)
+    return JSONResponse(
+        {
+        "message":"success",
+        "operation_status": operationStatus.get("success"),         
+        "data": getUsers
+        }, 
+        status_code=200)
     

@@ -6,7 +6,7 @@ from schemas.pydantic_schema import loginSchema, addUserSchema, validate_login_f
 import pyrebase
 from config.firebase_config import firebase_config
 from auth.jwt_handler import encode_jwt
-import json
+from constants.operation_status import operationStatus
 
 firebase = pyrebase.initialize_app(firebase_config())
 auth = firebase.auth()
@@ -39,6 +39,7 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
         return JSONResponse(
             {
             "message": "Successfully login!",
+            "operation_status": operationStatus.get("success"),
             "token": jwtEncode
             }, 
             status_code = 200
@@ -66,7 +67,9 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
         if getExistingUser:
             return JSONResponse(
             {
-                "message": f"User with id {id_number} already exists!"
+                "message": f"User with id {id_number} already exists!",
+                "operation_status": operationStatus.get("repoError"),
+
             },
             status_code = 409
             )
@@ -89,7 +92,9 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
 
         return JSONResponse(
             {
-                "message": f"User with id number {id_number} successfully added!"
+                "message": f"User with id number {id_number} successfully added!",
+                "operation_status": operationStatus.get("success"),
+
             },
             status_code = 201
             )
@@ -97,7 +102,9 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
     except HTTPError:
         return JSONResponse(
         {
-            "message": "Email already exists!"
+            "message": "Email already exists!",
+            "operation_status": operationStatus.get("repoError"),
+
         },
         status_code = 409
         )
