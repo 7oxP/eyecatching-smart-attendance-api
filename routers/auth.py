@@ -71,7 +71,6 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             }, 
             status_code = 200
                 )
-
     
     except:
         raise HTTPException(

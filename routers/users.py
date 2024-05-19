@@ -114,7 +114,9 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
 
 
         return JSONResponse(
-            {"message": f"data successfully added!"},
+            {"message": f"data successfully added!",
+             "data": data
+             },
             status_code = 201
             )
     
@@ -129,8 +131,39 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
 async def get_user_gallery_logs():
     pass
 
-@router.get("/users/{user_id}/attendance-status")
-async def get_user_attendance_status():
+@router.get("/users/attendance-status")
+async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
+    try:
+        timestamp = datetime.now(ZoneInfo('Asia/Jakarta'))
+        currentDate = timestamp.strftime("%Y-%m-%d")
+
+        extractJWTPayload = decode_jwt(authorization)
+
+        getUserId = extractJWTPayload["user_id"]
+
+        getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+
+        getUserLastAttendanceDate = list(getChildNode)[-1]
+        
+        if getUserLastAttendanceDate != currentDate:
+            return JSONResponse(
+            {"message": "the user has not checked in yet",
+            "attendance_status": "absent",
+            }, status_code=200
+            )
+        
+        return JSONResponse(
+            {"message": "the user has checked in",
+            "attendance_status": "present",
+            }, status_code=200
+            )
+        
+    except Exception as err:
+        return JSONResponse(
+            {"message": str(err),
+            "data": None,
+            }, status_code=200
+            )
     pass
 
 @router.get("/users/{user_id}")
