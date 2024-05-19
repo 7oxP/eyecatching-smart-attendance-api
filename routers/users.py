@@ -1,7 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, Depends, Path, Form
 from fastapi.responses import JSONResponse
-from PIL import Image
-from io import BytesIO
 from schemas.pydantic_schema import updateUserSchema, validate_update_user_form
 import pyrebase
 from config.firebase_config import firebase_config
@@ -47,7 +45,8 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
         if getChildNode is None:
             return JSONResponse(
-            {"message": "User does not have any attendance logs",
+            {
+            "message": "User does not have any attendance logs",
             "data": None,
             }, status_code=200
             )
