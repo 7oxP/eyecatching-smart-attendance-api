@@ -35,8 +35,26 @@ async def upload_profile_pict(profile_pict: UploadFile = File(...), authorizatio
     return uploadProfilePict
 
 @router.get("/users/attendance-logs")
-async def get_all_user_attendance_logs():
-    pass
+async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())):
+    try:        
+        extractJWTPayload = decode_jwt(authorization)
+        getUserRole = extractJWTPayload["role"]
+        adminRole = os.getenv("ADMIN_ROLE")
+
+        if getUserRole != int(adminRole):
+            return JSONResponse(
+                {
+                    "message": "User unauthorized",
+                    "operation_status": operationStatus.get("unauthorizedAccess"),
+                },
+                status_code=401
+            )
+    except Exception as err:
+        return JSONResponse(
+            {
+                "message": str(err)
+            }
+        )
 
 @router.post("/users/attendance-logs")
 async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
@@ -61,7 +79,7 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
             status_code = 409
             )
         
-        uploadCapturedImage = await upload_captured_image(captured_image, "captured_images/", user_id, getNodesName)
+        uploadCapturedImage = await upload_captured_image(captured_image, user_id)
         getCapturedImageURL = uploadCapturedImage.body
         getCapturedImageURL = json.loads(getCapturedImageURL)
 
@@ -250,7 +268,7 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
         
         uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
         extractUploadProfilePictData = uploadProfilePict.body
-        extractUploadProfilePictData = json.loads(extractUploadProfilePictData.decode('utf-8'))
+        extractUploadProfilePictData = json.loads(extractUploadProfilePictData)
 
         getProfilePictURL = extractUploadProfilePictData
         data = userData.model_dump(exclude_none=True)
