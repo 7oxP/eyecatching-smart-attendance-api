@@ -6,11 +6,7 @@ from schemas.pydantic_schema import loginSchema, addUserSchema, validate_login_f
 import pyrebase
 from config.firebase_config import firebase_config
 from auth.jwt_handler import encode_jwt
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
+import json
 
 firebase = pyrebase.initialize_app(firebase_config())
 auth = firebase.auth()
@@ -55,8 +51,6 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             status_code = 401,
             detail = "Failed to login, username or password is invalid!"
             )
-    
-
 
 @router.post("/users", tags=["Auth"])
 async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
@@ -69,6 +63,16 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
     userRole = 2
 
     try:
+        getExistingUser = db.child("users").order_by_child("user_id").equal_to(id_number).get().val()
+
+        if getExistingUser:
+            return JSONResponse(
+            {
+                "message": f"User with id {id_number} already exists!"
+            },
+            status_code = 409
+            )
+        
         user = auth.create_user_with_email_and_password(
             email = email,
             password = password
@@ -86,14 +90,16 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
         insertData = db.child("users").child(user["localId"]).set(data)
 
         return JSONResponse(
-            {"message": f"User with id number {id_number} successfully added!"},
+            {
+                "message": f"User with id number {id_number} successfully added!"
+            },
             status_code = 201
             )
     
-    except Exception as err:
+    except HTTPError:
         return JSONResponse(
-            {"message": f"User with id number {id_number} already existed!",
-             "details": err
-             },
-            status_code = 401,
+        {
+            "message": "Email already exists!"
+        },
+        status_code = 409
         )
