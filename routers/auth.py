@@ -1,8 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from requests.exceptions import HTTPError
-from schemas.pydantic_schema import loginSchema, addUserSchema
+from schemas.pydantic_schema import loginSchema, addUserSchema, validate_login_form, validate_add_user_form
 import pyrebase
 from config.firebase_config import firebase_config
 from auth.jwt_handler import encode_jwt
@@ -25,7 +25,7 @@ router = APIRouter(
 
 
 @router.post("/login", tags=["Auth"])
-async def login(userData: loginSchema):
+async def login(userData: loginSchema = Depends(validate_login_form)):
     email = userData.email
     password = userData.password
 
@@ -82,7 +82,7 @@ async def login(userData: loginSchema):
 
 
 @router.post("/users", tags=["Auth"])
-async def add_user(userData: addUserSchema):
+async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
     id_number = userData.id_number
     name = userData.name
     floor = userData.floor

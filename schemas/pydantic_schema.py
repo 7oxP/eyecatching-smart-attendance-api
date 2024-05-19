@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from fastapi import Form
+from pydantic import BaseModel, EmailStr, ValidationError
+from fastapi import Form, HTTPException
 
 class addUserSchema(BaseModel):
     id_number: int
@@ -7,7 +7,7 @@ class addUserSchema(BaseModel):
     floor: int
     # start_time: str
     # end_time: str
-    email: str
+    email: EmailStr
     password: str
     profile_pict_url: str
 
@@ -26,8 +26,21 @@ class addUserSchema(BaseModel):
         }
     }
 
+def validate_add_user_form(  
+                            id_number: int = Form(...),
+                            name: str = Form(...),
+                            floor: int = Form(...),
+                            email: str = Form(...),
+                            password: str = Form(...),
+                            profile_pict_url: str = Form(...),
+                          ) -> addUserSchema:
+    try:
+        return addUserSchema(id_number=id_number, name=name, floor=floor, email=email, password=password, profile_pict_url=profile_pict_url)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
+
 class loginSchema(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
     model_config = {
@@ -41,13 +54,18 @@ class loginSchema(BaseModel):
         }
     }
 
+def validate_login_form(email: str = Form(...), password: str = Form(...)) -> loginSchema:
+    try:
+        return loginSchema(email=email, password=password)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
+
 class updateUserSchema(BaseModel):
     name: str
-    position: str
     floor: int
     # start_time: str
     # end_time: str
-    email: str
+    email: EmailStr
     password: str
     profile_pict: bytes
 
@@ -64,3 +82,15 @@ class updateUserSchema(BaseModel):
             ]
         }
     }
+
+def validate_update_user_form(  
+                            name: str = Form(...),
+                            floor: int = Form(...),
+                            email: str = Form(...),
+                            password: str = Form(...),
+                            profile_pict_url: str = Form(...),
+                          ) -> addUserSchema:
+    try:
+        return addUserSchema(name=name, floor=floor, email=email, password=password, profile_pict_url=profile_pict_url)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
