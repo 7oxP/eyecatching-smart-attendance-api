@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Depends, Path, Form
 from fastapi.responses import JSONResponse
 from PIL import Image
 from io import BytesIO
-from schemas.pydantic_schema import updateUserSchema
+from schemas.pydantic_schema import updateUserSchema, validate_update_user_form
 import pyrebase
 from config.firebase_config import firebase_config
 from auth.jwt_handler import decode_jwt
@@ -140,7 +140,7 @@ async def get_user_by_id(user_id: int = Path(...)):
     return (user)
 
 @router.put("/users/{user_id}")
-async def update_user(userData: updateUserSchema):
+async def update_user(userData: updateUserSchema = Depends(validate_update_user_form)):
     pass
 
 
