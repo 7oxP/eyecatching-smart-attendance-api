@@ -181,12 +181,20 @@ async def update_user(userData: updateUserSchema = Depends(validate_update_user_
 async def get_all_users(authorization: str = Depends(JWTBearer())):
     extractJWTPayload = decode_jwt(authorization)
     getUserRole = extractJWTPayload["role"]
+    adminRole = os.getenv("ADMIN_ROLE")
 
-    if getUserRole != os.getenv("ADMIN_ROLE"):
+    if getUserRole != int(adminRole):
         return JSONResponse(
             {
                 "message": "User unauthorized",
             },
             status_code=401
         )
+    
+    getUsers = db.child("users").get().val()
+    
+    return JSONResponse({"message":"success",
+                         "data":getUsers
+                         }, 
+                         status_code=200)
     
