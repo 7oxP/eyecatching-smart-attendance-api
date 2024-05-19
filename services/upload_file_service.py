@@ -8,6 +8,8 @@ from io import BytesIO
 from config.firebase_config import firebase_config
 import uuid
 from constants.operation_status import operationStatus
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 firebase = pyrebase.initialize_app(firebase_config())
 db = firebase.database()
@@ -19,7 +21,7 @@ async def upload_profile_picture(image_file: UploadFile = File(...), authorizati
         if image_file is None:
             return JSONResponse(
                 {
-                    "message": "No image is chosen (it's optional)",
+                    "message": "Please provide image file to be uploaded!",
                     "operation_status": operationStatus.get("fieldValidationError")
                 },
                 status_code=422
@@ -39,9 +41,9 @@ async def upload_profile_picture(image_file: UploadFile = File(...), authorizati
         getUserId = extractJWTPayload["user_id"]
         getUserIdToken = extractJWTPayload["user_id_token"]
 
-        uploadProfilePicture = storage.child("profile_pictures/" + image_file.filename).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
+        uploadProfilePicture = storage.child("profile_pictures/" + image_file.filename + "_" + getUserId).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
 
-        getProfilePictureURL = storage.child("profile_pictures/" + image_file.filename).get_url(getUserIdToken)
+        getProfilePictureURL = storage.child("profile_pictures/" + image_file.filename + "_" + getUserId).get_url(getUserIdToken)
 
         updateProfilePictURL = db.child("users").child(getUserId).update({"profile_pict_url":getProfilePictureURL})
 
@@ -62,9 +64,9 @@ async def upload_profile_picture(image_file: UploadFile = File(...), authorizati
                 status_code=500
             )
 
-async def upload_captured_image(image_file: UploadFile = File(...), folder_path: str = None, user_id: int = None, user_base_node: str = None):
+async def upload_captured_image(image_file: UploadFile = File(...), user_id: int = None):
     
-    try:
+    # try:
         if image_file is None:
                 return JSONResponse(
                     {
@@ -82,9 +84,13 @@ async def upload_captured_image(image_file: UploadFile = File(...), folder_path:
         image.save(img_io, format="JPEG")
         img_io.seek(0)
 
-        uploadImage = storage.child(folder_path + image_file.filename).put(file=img_io, content_type='image/jpeg')
+        timestamp = datetime.now(ZoneInfo('Asia/Jakarta'))
+        timestamp = timestamp.strftime("%Y-%m-%d_%H:%M")
 
-        getImageURL = storage.child(folder_path + image_file.filename).get_url(uuid.uuid1())
+
+        uploadImage = storage.child("captured_images/" + image_file.filename + "_" + str(user_id) + "_" + timestamp).put(file=img_io, content_type='image/jpeg')
+
+        getImageURL = storage.child("captured_images/" + image_file.filename + "_" + str(user_id) + "_"  + timestamp).get_url(uuid.uuid1())
 
         return JSONResponse(
             {
@@ -95,10 +101,10 @@ async def upload_captured_image(image_file: UploadFile = File(...), folder_path:
                 status_code=200
             )
 
-    except Exception as err:
-        return JSONResponse(
-            {
-                "message": str(err)
-            },
-                status_code=500
-            )
+    # except Exception as err:
+    #     return JSONResponse(
+    #         {
+    #             "message": str(err)
+    #         },
+    #             status_code=500
+    #         )
