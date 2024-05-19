@@ -35,34 +35,12 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             password = password
         )
 
-        print("User: ",user)
-
         getUserData = db.child("users").child(user["localId"]).get().val()
         getUserName= dict(getUserData)["name"]
 
-        getUserId = dict(getUserData)["user_id"]
-
-        print(getUserName)
-        print(getUserId)
+        getUserRole = dict(getUserData)["user_role"]
         
-
-        userRole = 2
-
-        if getUserName == "admin" and getUserId == 1:
-            userRole = os.getenv("ADMIN_ROLE")
-
-            jwtEncode = encode_jwt(user["localId"], user["email"], userRole , user["idToken"])
-            print("admin login")
-
-            return JSONResponse(
-                {
-                "message": "Successfully login!",
-                "token": jwtEncode
-                }, 
-                status_code = 200
-                )
-        
-        jwtEncode = encode_jwt(user["localId"], user["email"], userRole , user["idToken"])
+        jwtEncode = encode_jwt(user["localId"], user["email"], getUserRole , user["idToken"])
 
         return JSONResponse(
             {
@@ -88,6 +66,7 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
     email = userData.email
     password = userData.password
     profile_pict_url = userData.profile_pict_url
+    userRole = 2
 
     try:
         user = auth.create_user_with_email_and_password(
@@ -101,6 +80,7 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
             "floor": floor,
             "email": email,
             "profile_pict_url": profile_pict_url,
+            "role": userRole,
             }
         
         insertData = db.child("users").child(user["localId"]).set(data)
@@ -110,8 +90,10 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
             status_code = 201
             )
     
-    except HTTPError:
-        raise HTTPException(
+    except Exception as err:
+        return JSONResponse(
+            {"message": f"User with id number {id_number} already existed!",
+             "details": err
+             },
             status_code = 401,
-            detail = f"User with id number {id_number} already existed!"
         )
