@@ -199,20 +199,19 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             )
         
         getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
-        getNodesName = next(iter(getNodesName))
 
-
-        getUsers = db.child("users").child(getNodesName).get().val()
-
-        if getUsers is None:
+        if not getNodesName:
             return JSONResponse(
             {
             "message": f"There is no user with user id {user_id}",
             "operation_status": operationStatus.get("repoError"),
             "data": None
             }, 
-            status_code=200
+            status_code=400
             )
+        
+        getNodesName = next(iter(getNodesName))
+        getUsers = db.child("users").child(getNodesName).get().val()
         
         return JSONResponse(
             {
@@ -229,7 +228,7 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             "message": str(err),
             "data": None
             }, 
-            status_code=404
+            status_code=400
             )
 
 @router.put("/users/{user_id}")
