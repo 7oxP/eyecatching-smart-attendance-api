@@ -163,18 +163,50 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
             "data": None,
             }, status_code=200
             )
-    pass
 
 @router.get("/users/{user_id}")
-async def get_user_by_id(user_id: int = Path(...)):
-    user = user_id
-    print(user)
-    return (user)
+async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
+    print(user_id)
+    try:
+        extractJWTPayload = decode_jwt(authorization)
+        getUserRole = extractJWTPayload["role"]
+        adminRole = os.getenv("ADMIN_ROLE")
+
+        if getUserRole != int(adminRole):
+            return JSONResponse(
+                {
+                    "message": "User unauthorized",
+                },
+                status_code=401
+            )
+        
+        getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        getNodesName = next(iter(getNodesName))
+
+
+        getUsers = db.child("users").child(getNodesName).get().val()
+        
+        return JSONResponse(
+            {
+            "message":"success",
+            "data": getUsers
+            }, 
+            status_code=200
+            )
+    
+    except Exception as err:
+        return JSONResponse(
+            {
+            "message": str(err),
+            "data": None
+            }, 
+            status_code=404
+            )
 
 @router.put("/users/{user_id}")
-async def update_user(userData: updateUserSchema = Depends(validate_update_user_form)):
-    pass
-
+async def update_user(userData: updateUserSchema = Depends(validate_update_user_form), user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
+   return None
+    
 
 @router.get("/users")
 async def get_all_users(authorization: str = Depends(JWTBearer())):
@@ -193,7 +225,7 @@ async def get_all_users(authorization: str = Depends(JWTBearer())):
     getUsers = db.child("users").get().val()
     
     return JSONResponse({"message":"success",
-                         "data":getUsers
+                         "data": getUsers
                          }, 
                          status_code=200)
     
