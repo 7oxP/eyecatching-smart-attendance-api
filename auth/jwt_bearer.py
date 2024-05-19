@@ -1,5 +1,6 @@
 #The goal of this file is to check whether the reques tis authorized or not [ verification of the proteced route]
-from fastapi import Request, HTTPException
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from auth.jwt_handler import decode_jwt
@@ -13,13 +14,24 @@ class JWTBearer(HTTPBearer):
         credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
         if credentials:
             if not credentials.scheme == "Bearer":
-                raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
+                return JSONResponse(
+                    {
+                    "message": "Invalid authentication scheme"
+                    },
+                    status_code=403)
             if not self.verify_jwt(credentials.credentials):
-                raise HTTPException(status_code=403, detail="Invalid token or expired token.")
-            
+                return JSONResponse(
+                    {
+                    "message": "Invalid token or expired token"
+                    },
+                    status_code=403)            
             return credentials.credentials
         else:
-            raise HTTPException(status_code=403, detail="Invalid authorization code.")
+            return JSONResponse(
+                    {
+                    "message": "Invalid authorization code"
+                    },
+                    status_code=403)  
 
     def verify_jwt(self, jwtoken: str) -> bool:
         isTokenValid: bool = False

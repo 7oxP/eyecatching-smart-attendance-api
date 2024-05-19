@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, ValidationError
 from fastapi import Form, HTTPException
+from typing import Optional
 
 class addUserSchema(BaseModel):
     id_number: int
@@ -61,13 +62,13 @@ def validate_login_form(email: str = Form(...), password: str = Form(...)) -> lo
         raise HTTPException(status_code=400, detail=e.errors())
 
 class updateUserSchema(BaseModel):
-    name: str
-    floor: int
+    name: Optional[str] = "LOL"
+    floor: Optional[int] = 3
     # start_time: str
     # end_time: str
-    email: EmailStr
-    password: str
-    profile_pict: bytes
+    email: Optional[EmailStr] = "LOL"
+    password: Optional[str] = "LOL"
+    profile_pict_url: Optional[str] = "LOL"
 
     model_config = {
         "json_schema_extra": {
@@ -89,7 +90,7 @@ def validate_update_user_form(
                             email: str = Form(...),
                             password: str = Form(...),
                             profile_pict_url: str = Form(...),
-                          ) -> addUserSchema:
+                          ) -> updateUserSchema:
     try:
         return addUserSchema(name=name, floor=floor, email=email, password=password, profile_pict_url=profile_pict_url)
     except ValidationError as e:
