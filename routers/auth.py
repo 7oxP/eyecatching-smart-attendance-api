@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from requests.exceptions import HTTPError
@@ -7,6 +7,14 @@ import pyrebase
 from config.firebase_config import firebase_config
 from auth.jwt_handler import encode_jwt
 from constants.operation_status import operationStatus
+from services.upload_file_service import upload_profile_picture
+from auth.jwt_bearer import JWTBearer
+from auth.jwt_handler import decode_jwt
+import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 firebase = pyrebase.initialize_app(firebase_config())
 auth = firebase.auth()
@@ -52,16 +60,28 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             )
 
 @router.post("/users", tags=["Auth"])
-async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
+async def add_user(userData: addUserSchema = Depends(validate_add_user_form), image_file: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
     id_number = userData.id_number
     name = userData.name
     floor = userData.floor
     email = userData.email
     password = userData.password
-    profile_pict_url = userData.profile_pict_url
     userRole = 2
 
     try:
+        extractJWTPayload = decode_jwt(authorization)
+        getUserRole = extractJWTPayload["role"]
+        adminRole = os.getenv("ADMIN_ROLE")
+
+        if getUserRole != int(adminRole):
+            return JSONResponse(
+                {
+                    "message": "User unauthorized",
+                    "operation_status": operationStatus.get("unauthorizedAccess"),
+                },
+                status_code=401
+            )
+        
         getExistingUser = db.child("users").order_by_child("user_id").equal_to(id_number).get().val()
 
         if getExistingUser:
@@ -79,12 +99,18 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form)):
             password = password
         )
 
+        uploadProfilePict = await upload_profile_picture(image_file, authorization)
+        getUploadedProfilePictURL = uploadProfilePict.body
+        getUploadedProfilePictURL = json.loads(getUploadedProfilePictURL)
+
+        uploadProfilePictURL = getUploadedProfilePictURL["profile_picture_url"]
+
         data = {
             "user_id": id_number,
             "name": name,
             "floor": floor,
             "email": email,
-            "profile_pict_url": profile_pict_url,
+            "profile_pict_url": uploadProfilePictURL,
             "role": userRole,
             }
         

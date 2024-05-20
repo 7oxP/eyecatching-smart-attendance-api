@@ -49,6 +49,19 @@ async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())
                 },
                 status_code=401
             )
+        
+        getUserAttendanceLogs = db.child("users_attendance_logs").get().val()
+        getUserAttendanceLogs = dict(getUserAttendanceLogs)
+
+        return JSONResponse(
+            {
+                "message": "OK",
+                "operation_status": operationStatus.get("success"),
+                "data": getUserAttendanceLogs,
+            },
+            status_code=200
+        )
+
     except Exception as err:
         return JSONResponse(
             {
@@ -161,7 +174,7 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 async def get_user_gallery_logs():
     pass
 
-@router.get("/users/attendance-status")
+@router.get("/users/me/attendance-status")
 async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
     try:
         timestamp = datetime.now(ZoneInfo('Asia/Jakarta'))
