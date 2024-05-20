@@ -53,10 +53,13 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             status_code = 200
                 )
     
-    except:
-        raise HTTPException(
-            status_code = 401,
-            detail = "Failed to login, username or password is invalid!"
+    except HTTPError:
+        return JSONResponse(
+            {
+            "message":"Failed to login, username or password is invalid!",
+            "operation_status": operationStatus.get("authInvalidCredential"),
+            },
+            status_code = 401
             )
 
 @router.post("/users", tags=["Auth"])
