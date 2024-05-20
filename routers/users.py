@@ -28,12 +28,6 @@ router = APIRouter(
     )
 
 
-@router.post("/users/profile-picture")
-async def upload_profile_pict(profile_pict: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
-    uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
-
-    return uploadProfilePict
-
 @router.get("/users/attendance-logs")
 async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())):
     try:        
