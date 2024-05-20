@@ -10,7 +10,6 @@ class addUserSchema(BaseModel):
     # end_time: str
     email: EmailStr
     password: str
-    profile_pict_url: str
 
     model_config = {
         "json_schema_extra": {
@@ -21,7 +20,6 @@ class addUserSchema(BaseModel):
                     "floor": 20,
                     "email": "user@xl.com",
                     "password": "p4ssw0rd",
-                    "profile_pict_url": "https://profile-pict-url.com"
                 }
             ]
         }
@@ -33,10 +31,9 @@ def validate_add_user_form(
                             floor: int = Form(...),
                             email: str = Form(...),
                             password: str = Form(...),
-                            profile_pict_url: str = Form(...),
                           ) -> addUserSchema:
     try:
-        return addUserSchema(id_number=id_number, name=name, floor=floor, email=email, password=password, profile_pict_url=profile_pict_url)
+        return addUserSchema(id_number=id_number, name=name, floor=floor, email=email, password=password)
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=e.errors())
 
