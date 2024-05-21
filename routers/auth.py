@@ -44,10 +44,15 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
         
         jwtEncode = encode_jwt(user["localId"], user["email"], getUserRole , user["idToken"])
 
+        data = dict(getUserData)
+
         return JSONResponse(
             {
             "message": "Successfully login!",
             "operation_status": operationStatus.get("success"),
+            "data": {
+                "user": data
+            },
             "token": jwtEncode
             }, 
             status_code = 200
@@ -123,7 +128,9 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
             {
                 "message": f"User with id number {id_number} successfully added!",
                 "operation_status": operationStatus.get("success"),
-
+                "data":{
+                    "user": data
+                }
             },
             status_code = 201
             )
