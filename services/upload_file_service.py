@@ -36,16 +36,16 @@ async def upload_profile_picture(image_file: UploadFile = File(...), authorizati
         image.save(img_io, format="JPEG")
         img_io.seek(0)
 
-        extractJWTPayload = decode_jwt(authorization)
+        jwtPayload = decode_jwt(authorization)
         
-        getUserId = extractJWTPayload["user_id"]
-        getUserIdToken = extractJWTPayload["user_id_token"]
+        userId = jwtPayload["user_id"]
+        userIdToken = jwtPayload["user_id_token"]
 
-        uploadProfilePicture = storage.child("profile_pictures/" + image_file.filename + "_" + getUserId).put(file=img_io, token=getUserIdToken, content_type='image/jpeg')
+        uploadProfilePicture = storage.child("profile_pictures/" + image_file.filename + "_" + userId).put(file=img_io, token=userIdToken, content_type='image/jpeg')
 
-        getProfilePictureURL = storage.child("profile_pictures/" + image_file.filename + "_" + getUserId).get_url(getUserIdToken)
+        getProfilePictureURL = storage.child("profile_pictures/" + image_file.filename + "_" + userId).get_url(userIdToken)
 
-        updateProfilePictURL = db.child("users").child(getUserId).update({"profile_pict_url":getProfilePictureURL})
+        updateProfilePictURL = db.child("users").child(userId).update({"profile_pict_url":getProfilePictureURL})
 
         return JSONResponse(
             {

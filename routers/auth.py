@@ -39,12 +39,12 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             password = password
         )
 
-        getUserData = db.child("users").child(user["localId"]).get().val()
-        getUserRole = dict(getUserData)["role"]
+        userData = db.child("users").child(user["localId"]).get().val()
+        userRole = dict(userData)["role"]
         
-        jwtEncode = encode_jwt(user["localId"], user["email"], getUserRole , user["idToken"])
+        jwtEncode = encode_jwt(user["localId"], user["email"], userRole , user["idToken"])
 
-        data = dict(getUserData)
+        data = dict(userData)
 
         return JSONResponse(
             {
@@ -77,11 +77,11 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
     userRole = 2
 
     try:
-        extractJWTPayload = decode_jwt(authorization)
-        getUserRole = extractJWTPayload["role"]
+        jwtPayload = decode_jwt(authorization)
+        userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
-        if getUserRole != int(adminRole):
+        if userRole != int(adminRole):
             return JSONResponse(
                 {
                     "message": "User unauthorized",
@@ -90,9 +90,9 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
                 status_code=401
             )
         
-        getExistingUser = db.child("users").order_by_child("user_id").equal_to(id_number).get().val()
+        existingUser = db.child("users").order_by_child("user_id").equal_to(id_number).get().val()
 
-        if getExistingUser:
+        if existingUser:
             return JSONResponse(
             {
                 "message": f"User with id {id_number} already exists!",
@@ -108,17 +108,17 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
         )
 
         uploadProfilePict = await upload_profile_picture(image_file, authorization)
-        getUploadedProfilePictURL = uploadProfilePict.body
-        getUploadedProfilePictURL = json.loads(getUploadedProfilePictURL)
+        uploadedProfilePictURL = uploadProfilePict.body
+        uploadedProfilePictURL = json.loads(uploadedProfilePictURL)
 
-        uploadProfilePictURL = getUploadedProfilePictURL["profile_picture_url"]
+        profilePictURL = uploadedProfilePictURL["profile_picture_url"]
 
         data = {
             "user_id": id_number,
             "name": name,
             "floor": floor,
             "email": email,
-            "profile_pict_url": uploadProfilePictURL,
+            "profile_pict_url": profilePictURL,
             "role": userRole,
             }
         

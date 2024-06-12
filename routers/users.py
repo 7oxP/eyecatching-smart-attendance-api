@@ -31,11 +31,11 @@ router = APIRouter(
 @router.get("/users/attendance-logs")
 async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())):
     try:        
-        extractJWTPayload = decode_jwt(authorization)
-        getUserRole = extractJWTPayload["role"]
+        jwtPayload = decode_jwt(authorization)
+        userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
-        if getUserRole != int(adminRole):
+        if userRole != int(adminRole):
             return JSONResponse(
                 {
                     "message": "User unauthorized",
@@ -44,14 +44,14 @@ async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())
                 status_code=401
             )
         
-        getUserAttendanceLogs = db.child("users_attendance_logs").get().val()
-        getUserAttendanceLogs = dict(getUserAttendanceLogs)
+        userAttendanceLogs = db.child("users_attendance_logs").get().val()
+        userAttendanceLogs = dict(userAttendanceLogs)
 
         return JSONResponse(
             {
                 "message": "OK",
                 "operation_status": operationStatus.get("success"),
-                "data": getUserAttendanceLogs,
+                "data": userAttendanceLogs,
             },
             status_code=200
         )
@@ -67,17 +67,17 @@ async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())
 async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
 
     try:
-        getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
-        getNodesName = next(iter(getNodesName))
+        nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        nodesName = next(iter(nodesName))
 
         floor = floor
         status = status
         timestamp = datetime.now(ZoneInfo('Asia/Jakarta'))
         captured_image = image_file
 
-        getAttendanceTime = db.child("users_attendance_logs").child(getNodesName).child(timestamp.strftime("%Y-%m-%d")).get().val()
+        attendanceTime = db.child("users_attendance_logs").child(nodesName).child(timestamp.strftime("%Y-%m-%d")).get().val()
 
-        if getAttendanceTime:
+        if attendanceTime:
             return JSONResponse(
             {
             "message": f"User is already attended!",
@@ -99,7 +99,7 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
             "captured_face_url": capturedImageURL,
         }
                 
-        insertData = db.child("users_attendance_logs").child(getNodesName).child(timestamp.strftime("%Y-%m-%d")).set(data)
+        insertData = db.child("users_attendance_logs").child(nodesName).child(timestamp.strftime("%Y-%m-%d")).set(data)
 
 
         return JSONResponse(
@@ -122,13 +122,13 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
 async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
     try:
-        extractJWTPayload = decode_jwt(authorization)
+        jwtPayload = decode_jwt(authorization)
 
-        getUserId = extractJWTPayload["user_id"]
+        getUserId = jwtPayload["user_id"]
 
-        getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+        childNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
 
-        if getChildNode is None:
+        if childNode is None:
             return JSONResponse(
             {
             "message": "User does not have any attendance logs",
@@ -138,9 +138,9 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
             )
 
         dataAttendance = {}
-        print(list(getChildNode))
+        print(list(childNode))
 
-        for childNode in list(getChildNode):
+        for childNode in list(childNode):
             print(childNode)
             getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
             
@@ -174,15 +174,15 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
         timestamp = datetime.now(ZoneInfo('Asia/Jakarta'))
         currentDate = timestamp.strftime("%Y-%m-%d")
 
-        extractJWTPayload = decode_jwt(authorization)
+        jwtPayload = decode_jwt(authorization)
 
-        getUserId = extractJWTPayload["user_id"]
+        getUserId = jwtPayload["user_id"]
 
-        getChildNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+        childNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
 
-        getUserLastAttendanceDate = list(getChildNode)[-1]
+        userLastAttendanceDate = list(childNode)[-1]
         
-        if getUserLastAttendanceDate != currentDate:
+        if userLastAttendanceDate != currentDate:
             return JSONResponse(
             {
             "message": "The user has not checked in yet",
@@ -209,11 +209,11 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
 @router.get("/users/{user_id}")
 async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
     try:
-        extractJWTPayload = decode_jwt(authorization)
-        getUserRole = extractJWTPayload["role"]
+        jwtPayload = decode_jwt(authorization)
+        userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
-        if getUserRole != int(adminRole):
+        if userRole != int(adminRole):
             return JSONResponse(
                 {
                     "message": "User unauthorized",
@@ -223,9 +223,9 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
                 status_code=401
             )
         
-        getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
 
-        if not getNodesName:
+        if not nodesName:
             return JSONResponse(
             {
             "message": f"There is no user with user id {user_id}",
@@ -235,8 +235,8 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             status_code=400
             )
         
-        getNodesName = next(iter(getNodesName))
-        getUsers = db.child("users").child(getNodesName).get().val()
+        nodesName = next(iter(nodesName))
+        getUsers = db.child("users").child(nodesName).get().val()
         
         return JSONResponse(
             {
@@ -260,11 +260,11 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
 async def update_user(profile_pict: UploadFile = File(None), userData: updateUserSchema = Depends(validate_update_user_form), user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
     
     try:        
-        extractJWTPayload = decode_jwt(authorization)
-        getUserRole = extractJWTPayload["role"]
+        jwtPayload = decode_jwt(authorization)
+        userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
-        if getUserRole != int(adminRole):
+        if userRole != int(adminRole):
             return JSONResponse(
                 {
                     "message": "User unauthorized",
@@ -274,14 +274,14 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
             )
         
         uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
-        extractUploadProfilePictData = uploadProfilePict.body
-        extractUploadProfilePictData = json.loads(extractUploadProfilePictData)
+        uploadProfilePictData = uploadProfilePict.body
+        uploadProfilePictData = json.loads(uploadProfilePictData)
 
-        getProfilePictURL = extractUploadProfilePictData
+        profilePictURL = uploadProfilePictData
         data = userData.model_dump(exclude_none=True)
         
-        if getProfilePictURL["operation_status"] == operationStatus.get("success"):
-            data["profile_pict_url"] = getProfilePictURL["profile_picture_url"]
+        if profilePictURL["operation_status"] == operationStatus.get("success"):
+            data["profile_pict_url"] = profilePictURL["profile_picture_url"]
 
         if not data:
             return JSONResponse(
@@ -293,10 +293,10 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
             status_code=422
             )
         
-        getNodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
-        getNodesName = next(iter(getNodesName))
+        nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        nodesName = next(iter(nodesName))
         
-        updateData = db.child("users").child(getNodesName).update(data)
+        updateData = db.child("users").child(nodesName).update(data)
         
         
         return JSONResponse(
@@ -319,11 +319,11 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
 
 @router.get("/users")
 async def get_all_users(authorization: str = Depends(JWTBearer())):
-    extractJWTPayload = decode_jwt(authorization)
-    getUserRole = extractJWTPayload["role"]
+    jwtPayload = decode_jwt(authorization)
+    userRole = jwtPayload["role"]
     adminRole = os.getenv("ADMIN_ROLE")
 
-    if getUserRole != int(adminRole):
+    if userRole != int(adminRole):
         return JSONResponse(
             {
                 "message": "User unauthorized",
