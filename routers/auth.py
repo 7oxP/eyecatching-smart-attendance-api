@@ -45,8 +45,7 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
         jwtEncode = encode_jwt(
             user["localId"], 
             user["email"], 
-            userRole , 
-            user["idToken"],
+            userRole, 
             )
 
         data = dict(userData)

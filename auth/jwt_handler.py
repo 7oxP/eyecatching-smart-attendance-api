@@ -9,14 +9,13 @@ secret_key = os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHMS")
 expire_time = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 
-def encode_jwt(user_id: str, email: str, role: int, user_id_token: str):
+def encode_jwt(user_id: str, email: str, role: int):
     expires = datetime.now(timezone.utc) + timedelta(minutes=120)
     
     payload = {
         "user_id": user_id,
         "email": email,
         "role": role,
-        "user_id_token": user_id_token,
         "sub": user_id,
         "identity": email,
         "exp_time": expires.strftime("%Y-%m-%d %H:%M:%S") 

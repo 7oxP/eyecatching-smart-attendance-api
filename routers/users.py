@@ -150,7 +150,7 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
         return JSONResponse(
             {
-            "message": "User's attendance successfully added!",
+            "message": "OK",
             "operation_status": operationStatus.get("success"),
             "data": dataAttendance,
             }, status_code=200
