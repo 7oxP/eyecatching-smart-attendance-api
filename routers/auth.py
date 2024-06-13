@@ -42,7 +42,12 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
         userData = db.child("users").child(user["localId"]).get().val()
         userRole = dict(userData)["role"]
         
-        jwtEncode = encode_jwt(user["localId"], user["email"], userRole , user["idToken"])
+        jwtEncode = encode_jwt(
+            user["localId"], 
+            user["email"], 
+            userRole , 
+            user["idToken"],
+            )
 
         data = dict(userData)
 

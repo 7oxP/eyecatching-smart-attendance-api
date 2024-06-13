@@ -17,6 +17,8 @@ def encode_jwt(user_id: str, email: str, role: int, user_id_token: str):
         "email": email,
         "role": role,
         "user_id_token": user_id_token,
+        "sub": user_id,
+        "identity": email,
         "exp_time": expires.strftime("%Y-%m-%d %H:%M:%S") 
     }
     return jwt.encode(payload, key=secret_key)
