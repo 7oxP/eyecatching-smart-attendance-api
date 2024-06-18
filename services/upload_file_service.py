@@ -30,7 +30,7 @@ async def upload_profile_picture(image_file: UploadFile = File(...), authorizati
         contents = await image_file.read()
 
         
-        image = Image.open(BytesIO(contents))
+        image = Image.open(BytesIO(contents)).convert("RGB")
         
         img_io = BytesIO()
         image.save(img_io, format="JPEG")
