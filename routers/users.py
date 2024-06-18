@@ -64,10 +64,20 @@ async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())
         )
 
 @router.post("/users/attendance-logs")
-async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
+async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form(...), floor: str = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
 
     try:
         nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+
+        if not nodesName:
+            return JSONResponse(
+            {
+                "message": "Unauthorized access",
+                "operation_status": operationStatus.get("unauthorizedAccess"),
+             },
+            status_code = 401
+            )
+        
         nodesName = next(iter(nodesName))
 
         floor = floor
@@ -93,6 +103,8 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
         capturedImageURL = getCapturedImageURL["image_url"]
 
         data = {
+            "user_id": user_id,
+            "name": name,
             "floor": floor,
             "status": status,
             "timestamp": timestamp.strftime("%a, %d %b %Y %H:%M"),
@@ -103,9 +115,10 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
 
 
         return JSONResponse(
-            {"message": "Data successfully added!",
-            "operation_status": operationStatus.get("success"),
-             "data": data
+            {
+                "message": "Data successfully added!",
+                "operation_status": operationStatus.get("success"),
+                "data": data
              },
             status_code = 201
             )
@@ -113,8 +126,8 @@ async def insert_user_attendance_logs(user_id: int = Form(...), floor: str = For
     except Exception as err:
         return JSONResponse(
             {
-            "message": str(err),
-            "data": None,
+                "message": str(err),
+                "data": None,
             }, status_code=500
             )
 

@@ -46,6 +46,7 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             user["localId"], 
             user["email"], 
             userRole, 
+            user["idToken"] # needed for uploading file
             )
 
         data = dict(userData)
@@ -78,7 +79,7 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
     floor = userData.floor
     email = userData.email
     password = userData.password
-    userRole = 2
+    defaultUserRole = 2
 
     try:
         jwtPayload = decode_jwt(authorization)
@@ -115,6 +116,7 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
         uploadedProfilePictURL = uploadProfilePict.body
         uploadedProfilePictURL = json.loads(uploadedProfilePictURL)
 
+        print("uploadedProfilePictURL",uploadedProfilePictURL)
         profilePictURL = uploadedProfilePictURL["profile_picture_url"]
 
         data = {
@@ -123,7 +125,7 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
             "floor": floor,
             "email": email,
             "profile_pict_url": profilePictURL,
-            "role": userRole,
+            "role": defaultUserRole,
             }
         
         insertData = db.child("users").child(user["localId"]).set(data)
