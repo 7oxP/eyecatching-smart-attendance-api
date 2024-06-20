@@ -68,15 +68,6 @@ async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form
 
     try:
         nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
-
-        if not nodesName:
-            return JSONResponse(
-            {
-                "message": "Unauthorized access",
-                "operation_status": operationStatus.get("unauthorizedAccess"),
-             },
-            status_code = 401
-            )
         
         nodesName = next(iter(nodesName))
 
