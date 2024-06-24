@@ -130,28 +130,31 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
         getUserId = jwtPayload["user_id"]
 
-        childNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
+        # childNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
 
-        if childNode is None:
-            return JSONResponse(
-            {
-            "message": "User does not have any attendance logs",
-            "operation_status": operationStatus.get("repoError"),
-            "data": None,
-            }, status_code=200
-            )
+        # if childNode is None:
+        #     return JSONResponse(
+        #     {
+        #     "message": "User does not have any attendance logs",
+        #     "operation_status": operationStatus.get("repoError"),
+        #     "data": None,
+        #     }, status_code=200
+        #     )
 
-        dataAttendance = {}
-        print(list(childNode))
+        dataAttendance = []
+        getAttendances = db.child("users_attendance_logs").child(getUserId).get().val()
+        extractedAttendances = dict(getAttendances)
 
-        for childNode in list(childNode):
-            print(childNode)
-            getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
+        for date, attendance in extractedAttendances.items():
+            dataAttendance.append(attendance)
             
-            dataAttendance[childNode] = dict(getAttendances)
-        
-        print("data attendance:",dataAttendance)
 
+        # for childNode in list(childNode):
+        #     print(childNode)
+        #     getAttendances = db.child("users_attendance_logs").child(getUserId).child(childNode).get().val()
+            
+        #     dataAttendance[childNode] = dict(getAttendances)
+        
         return JSONResponse(
             {
             "message": "OK",
