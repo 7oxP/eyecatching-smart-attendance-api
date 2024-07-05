@@ -7,6 +7,7 @@ operationStatus = {
 
     "unauthorizedAccess": -5,
     "fieldValidationError": -6,
+    "dataNotFound": -7,
 
     #auth
     "authInvalidCredential": -8,
