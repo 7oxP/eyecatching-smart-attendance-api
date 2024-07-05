@@ -187,7 +187,15 @@ async def get_user_attendance_logs_by_month(month: int, authorization: str = Dep
             
             if convertedTimestamp.month == month:
                 dataAttendance.append(attendance)
-            
+        
+        if not dataAttendance:
+            return JSONResponse(
+            {
+            "message": "Data kehadiran untuk bulan yang terpilih belum tersedia",
+            "operation_status": operationStatus.get("dataNotFound"),
+            "data": dataAttendance,
+            }, status_code=404
+            )
         
         return JSONResponse(
             {
