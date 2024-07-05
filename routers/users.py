@@ -169,6 +169,42 @@ async def update_user_profile_pict(profile_pict: UploadFile = File(None), author
             status_code=400
         )
 
+@router.get("/users/me/attendance-logs/")
+async def get_user_attendance_logs_by_month(month: int, authorization: str = Depends(JWTBearer())):
+
+    try:
+        jwtPayload = decode_jwt(authorization)
+
+        userId = jwtPayload["user_id"]
+
+        dataAttendance = []
+        getAttendances = db.child("users_attendance_logs").child(userId).get().val()
+        extractedAttendances = dict(getAttendances)
+        
+
+        for date, attendance in extractedAttendances.items():
+            convertedTimestamp = datetime.strptime(attendance["timestamp"], "%a, %d %b %Y %H:%M")
+            
+            if convertedTimestamp.month == month:
+                dataAttendance.append(attendance)
+            
+        
+        return JSONResponse(
+            {
+            "message": "OK",
+            "operation_status": operationStatus.get("success"),
+            "data": dataAttendance,
+            }, status_code=200
+            )
+    
+    except Exception as err:
+        return JSONResponse(
+            {
+            "message": str(err),
+            "data": None,
+            }, status_code=500
+            )
+
 @router.get("/users/me/attendance-logs")
 async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
