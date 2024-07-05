@@ -122,13 +122,60 @@ async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form
             }, status_code=500
             )
 
+@router.put("/users/me/profile-picture")
+async def update_user_profile_pict(profile_pict: UploadFile = File(None), authorization: str = Depends(JWTBearer())):
+    
+    try:        
+        jwtPayload = decode_jwt(authorization)
+        nodesName = jwtPayload["user_id"]
+        
+        uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
+        uploadProfilePictData = uploadProfilePict.body
+        uploadProfilePictData = json.loads(uploadProfilePictData)
+
+        profilePictURL = uploadProfilePictData
+        data = {
+                'profile_pict_url': profilePictURL["profile_picture_url"],
+                }
+
+        if profilePictURL["operation_status"] == operationStatus.get("fieldValidationError"):
+            return JSONResponse(
+            {
+                "message": "There is no data sent!",
+                "operation_status": operationStatus.get("fieldValidationError"),
+                "data": None
+            },
+            status_code=422
+            )
+        
+        updateData = db.child("users").child(nodesName).update(data)
+        
+        
+        return JSONResponse(
+            {
+                "message": "User's data successfully updated!",
+                "operation_status": operationStatus.get("success"),
+                "data": data
+            },
+            status_code=201
+        )
+
+    except Exception as err:
+        return JSONResponse(
+            {
+                "message": str(err),
+                "data": None
+            },
+            status_code=400
+        )
+
 @router.get("/users/me/attendance-logs")
 async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
     try:
         jwtPayload = decode_jwt(authorization)
 
-        getUserId = jwtPayload["user_id"]
+        userId = jwtPayload["user_id"]
 
         # childNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
 
@@ -142,7 +189,7 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
         #     )
 
         dataAttendance = []
-        getAttendances = db.child("users_attendance_logs").child(getUserId).get().val()
+        getAttendances = db.child("users_attendance_logs").child(userId).get().val()
         extractedAttendances = dict(getAttendances)
 
         for date, attendance in extractedAttendances.items():
