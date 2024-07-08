@@ -15,7 +15,7 @@ firebase = pyrebase.initialize_app(firebase_config())
 db = firebase.database()
 storage = firebase.storage()
 
-async def upload_profile_picture(image_file: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
+async def upload_profile_picture(userId: int, image_file: UploadFile = File(...), authorization: str = Depends(JWTBearer())):
 
     try:
         if image_file is None:
@@ -38,14 +38,14 @@ async def upload_profile_picture(image_file: UploadFile = File(...), authorizati
 
         jwtPayload = decode_jwt(authorization)
         
-        userId = jwtPayload["user_id"]
+        nodesName = jwtPayload["user_id"]
         userIdToken = jwtPayload["user_id_token"]
 
-        uploadProfilePicture = storage.child("profile_pictures/" + image_file.filename + "_" + userId).put(file=img_io, token=userIdToken, content_type='image/jpeg')
+        uploadProfilePicture = storage.child(f"profile_pictures/{userId}_profile_picture.jpg").put(file=img_io, token=userIdToken, content_type='image/jpeg')
 
-        getProfilePictureURL = storage.child("profile_pictures/" + image_file.filename + "_" + userId).get_url(userIdToken)
+        getProfilePictureURL = storage.child(f"profile_pictures/{userId}_profile_picture.jpg").get_url(userIdToken)
 
-        updateProfilePictURL = db.child("users").child(userId).update({"profile_pict_url":getProfilePictureURL})
+        updateProfilePictURL = db.child("users").child(nodesName).update({"profile_pict_url":getProfilePictureURL})
 
         return JSONResponse(
             {
