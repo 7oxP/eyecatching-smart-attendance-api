@@ -21,7 +21,7 @@ load_dotenv()
 firebase = pyrebase.initialize_app(firebase_config())
 db = firebase.database()
 
-cred = credentials.Certificate('services_accounts/eyecatchingAccountKey.json')
+cred = credentials.Certificate('service_accounts/eyecatchingAccountKey.json')
 firebase_admin.initialize_app(cred, {'storageBucket':'smart-attendance-da7f6.appspot.com'})
 bucket = storage.bucket()
 
