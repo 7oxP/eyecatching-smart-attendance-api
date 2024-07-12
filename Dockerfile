@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 COPY . /app
 
 #
+RUN mkdir -p service_accounts
+
+#
 EXPOSE 8080
 
 # 
