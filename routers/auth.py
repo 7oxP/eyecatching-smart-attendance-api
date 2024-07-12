@@ -83,6 +83,16 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
 
     try:
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+        
         userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 

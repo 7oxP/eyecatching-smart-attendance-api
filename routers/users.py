@@ -40,6 +40,16 @@ router = APIRouter(
 async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())):
     try:        
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+    
         userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
@@ -135,6 +145,16 @@ async def update_user_profile_pict(profile_pict: UploadFile = File(None), author
     
     try:        
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+        
         nodesName = jwtPayload["user_id"]
         userData = db.child('users').child(nodesName).get().val()
         userId = dict(userData)["user_id"]
@@ -185,6 +205,15 @@ async def get_user_attendance_logs_by_month(month: int, authorization: str = Dep
     try:
         jwtPayload = decode_jwt(authorization)
 
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+
         userId = jwtPayload["user_id"]
 
         dataAttendance = []
@@ -228,6 +257,15 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
 
     try:
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
 
         userId = jwtPayload["user_id"]
 
@@ -284,6 +322,15 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
 
         jwtPayload = decode_jwt(authorization)
 
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+
         getUserId = jwtPayload["user_id"]
 
         childNode = db.child("users_attendance_logs").child(getUserId).shallow().get().val()
@@ -318,6 +365,16 @@ async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
 async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
     try:
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+        
         userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
@@ -369,6 +426,16 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
     
     try:        
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+        
         userRole = jwtPayload["role"]
         adminRole = os.getenv("ADMIN_ROLE")
 
@@ -429,6 +496,16 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
 async def delete_user_by_id(user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
     # try:
         jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+        
         userRole = jwtPayload["role"]
 
         adminRole = os.getenv("ADMIN_ROLE")
@@ -479,6 +556,17 @@ async def delete_user_by_id(user_id: int = Path(...), authorization: str = Depen
 @router.get("/users")
 async def get_all_users(authorization: str = Depends(JWTBearer())):
     jwtPayload = decode_jwt(authorization)
+
+    if jwtPayload == operationStatus.get("jwtExpiredToken"):
+        return JSONResponse(
+            {
+                "message": "JWT Token is expired",
+                "operation_status": operationStatus.get("jwtExpiredToken"),
+            },
+            status_code=401
+        )
+    
+    # pake operation status buat handle error jwt yang expired
     userRole = jwtPayload["role"]
     adminRole = os.getenv("ADMIN_ROLE")
 

@@ -19,4 +19,5 @@ operationStatus = {
 
     #jwt
     "jwtGenerateError": -13,
+    "jwtExpiredToken": -15
 }
