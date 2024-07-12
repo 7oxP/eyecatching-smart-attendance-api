@@ -12,24 +12,29 @@ from zoneinfo import ZoneInfo
 import os
 from dotenv import load_dotenv
 from services.upload_file_service import upload_profile_picture, upload_captured_image
+from services.get_credentials_file import get_credentials
 import json
 from constants.operation_status import operationStatus
 
-
 load_dotenv()
+
+storageBucket = os.getenv("STORAGE_BUCKET")
+credentialsJSON = os.getenv("CREDENTIALS_JSON")
 
 firebase = pyrebase.initialize_app(firebase_config())
 db = firebase.database()
 
-cred = credentials.Certificate('service_accounts/eyecatchingAccountKey.json')
-firebase_admin.initialize_app(cred, {'storageBucket':'smart-attendance-da7f6.appspot.com'})
+credentialsFile = get_credentials()
+
+cred = credentials.Certificate(credentialsJSON)
+firebase_admin.initialize_app(cred, {'storageBucket': storageBucket})
+
 bucket = storage.bucket()
 
 router = APIRouter(
     prefix="/api",
     tags=["Users"],
     )
-
 
 @router.get("/users/attendance-logs")
 async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())):
