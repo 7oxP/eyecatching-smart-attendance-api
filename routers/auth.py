@@ -112,11 +112,10 @@ async def add_user(userData: addUserSchema = Depends(validate_add_user_form), im
             password = password
         )
 
-        uploadProfilePict = await upload_profile_picture(image_file, authorization)
+        uploadProfilePict = await upload_profile_picture(id_number, image_file, authorization)
         uploadedProfilePictURL = uploadProfilePict.body
         uploadedProfilePictURL = json.loads(uploadedProfilePictURL)
 
-        print("uploadedProfilePictURL",uploadedProfilePictURL)
         profilePictURL = uploadedProfilePictURL["profile_picture_url"]
 
         data = {

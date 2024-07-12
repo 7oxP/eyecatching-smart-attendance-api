@@ -2,6 +2,8 @@ from fastapi import APIRouter, File, UploadFile, Depends, Path, Form
 from fastapi.responses import JSONResponse
 from schemas.pydantic_schema import updateUserSchema, validate_update_user_form
 import pyrebase
+import firebase_admin
+from firebase_admin import credentials, auth, storage
 from config.firebase_config import firebase_config
 from auth.jwt_handler import decode_jwt
 from auth.jwt_bearer import JWTBearer
@@ -17,10 +19,11 @@ from constants.operation_status import operationStatus
 load_dotenv()
 
 firebase = pyrebase.initialize_app(firebase_config())
-auth = firebase.auth()
 db = firebase.database()
-storage = firebase.storage()
 
+cred = credentials.Certificate('service_accounts/eyecatchingAccountKey.json')
+firebase_admin.initialize_app(cred, {'storageBucket':'smart-attendance-da7f6.appspot.com'})
+bucket = storage.bucket()
 
 router = APIRouter(
     prefix="/api",
@@ -67,9 +70,9 @@ async def get_all_user_attendance_logs(authorization: str = Depends(JWTBearer())
 async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form(...), floor: str = Form(...), status: str = Form(...), image_file: UploadFile = File(...)):
 
     try:
-        nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        userData = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
         
-        nodesName = next(iter(nodesName))
+        nodesName = next(iter(userData))
 
         floor = floor
         status = status
@@ -107,7 +110,7 @@ async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form
 
         return JSONResponse(
             {
-                "message": "Data successfully added!",
+                "message": "Data has been successfully added!",
                 "operation_status": operationStatus.get("success"),
                 "data": data
              },
@@ -128,8 +131,10 @@ async def update_user_profile_pict(profile_pict: UploadFile = File(None), author
     try:        
         jwtPayload = decode_jwt(authorization)
         nodesName = jwtPayload["user_id"]
+        userData = db.child('users').child(nodesName).get().val()
+        userId = dict(userData)["user_id"]
         
-        uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
+        uploadProfilePict = await upload_profile_picture(userId, profile_pict, authorization)
         uploadProfilePictData = uploadProfilePict.body
         uploadProfilePictData = json.loads(uploadProfilePictData)
 
@@ -153,7 +158,7 @@ async def update_user_profile_pict(profile_pict: UploadFile = File(None), author
         
         return JSONResponse(
             {
-                "message": "User's data successfully updated!",
+                "message": "User data has been successfully updated!",
                 "operation_status": operationStatus.get("success"),
                 "data": data
             },
@@ -321,9 +326,9 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
                 status_code=401
             )
         
-        nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        userData = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
 
-        if not nodesName:
+        if not userData:
             return JSONResponse(
             {
             "message": f"There is no user with user id {user_id}",
@@ -333,7 +338,7 @@ async def get_user_by_id(user_id: int = Path(...), authorization: str = Depends(
             status_code=400
             )
         
-        nodesName = next(iter(nodesName))
+        nodesName = next(iter(userData))
         getUsers = db.child("users").child(nodesName).get().val()
         
         return JSONResponse(
@@ -371,7 +376,7 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
                 status_code=401
             )
         
-        uploadProfilePict = await upload_profile_picture(profile_pict, authorization)
+        uploadProfilePict = await upload_profile_picture(user_id, profile_pict, authorization)
         uploadProfilePictData = uploadProfilePict.body
         uploadProfilePictData = json.loads(uploadProfilePictData)
 
@@ -391,15 +396,15 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
             status_code=422
             )
         
-        nodesName = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
-        nodesName = next(iter(nodesName))
+        userData = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        nodesName = next(iter(userData))
         
         updateData = db.child("users").child(nodesName).update(data)
         
         
         return JSONResponse(
             {
-                "message": "User's data successfully updated!",
+                "message": "User data has been successfully updated!",
                 "operation_status": operationStatus.get("success"),
                 "data": data
             },
@@ -414,6 +419,57 @@ async def update_user(profile_pict: UploadFile = File(None), userData: updateUse
             },
             status_code=400
         )
+
+@router.delete("/users/{user_id}")
+async def delete_user_by_id(user_id: int = Path(...), authorization: str = Depends(JWTBearer())):
+    # try:
+        jwtPayload = decode_jwt(authorization)
+        userRole = jwtPayload["role"]
+
+        adminRole = os.getenv("ADMIN_ROLE")
+
+        if userRole != int(adminRole):
+            return JSONResponse(
+                {
+                    "message": "User unauthorized",
+                    "operation_status": operationStatus.get("unauthorizedAccess"),
+                },
+                status_code=401
+            )
+        
+        userData = db.child("users").order_by_child("user_id").equal_to(user_id).get().val()
+        nodesName = next(iter(userData))
+        
+        extractedUserData = dict(userData)
+        userId = extractedUserData[nodesName]["user_id"]
+        print(extractedUserData)
+        
+        userDataDeletion = db.child("users").child(nodesName).remove()
+        userProfilePictDeletion = bucket.blob(f"profile_pictures/{userId}_profile_picture.jpg").delete()
+        userAccountDeletion = auth.delete_user(nodesName)
+        print(userDataDeletion)
+        print(userProfilePictDeletion)
+        print(userAccountDeletion)
+        #tambahin kode untuk ngapus data profile picture (format nama profile picture harus diubah juga)
+
+        return JSONResponse(
+                    {
+                        "message": "User data has been successfully deleted!",
+                        "operation_status": operationStatus.get("success"),
+                        # "data": data
+                    },
+                    status_code=200
+                )
+    
+    # except Exception as err:
+    #     return JSONResponse(
+    #         {
+    #             "message": str(err),
+    #             "data": None
+    #         },
+    #         status_code=500
+    #     )
+
 
 @router.get("/users")
 async def get_all_users(authorization: str = Depends(JWTBearer())):
@@ -434,7 +490,7 @@ async def get_all_users(authorization: str = Depends(JWTBearer())):
     
     return JSONResponse(
         {
-        "message":"success",
+        "message":"OK",
         "operation_status": operationStatus.get("success"),         
         "data": getUsers
         }, 
