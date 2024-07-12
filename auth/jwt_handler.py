@@ -1,16 +1,17 @@
 import os
 from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
+from jose import jwt
 from dotenv import load_dotenv
+from constants.operation_status import operationStatus
 
 load_dotenv()
 
 secret_key = os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHMS")
-expire_time = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
+expire_time = float(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 def encode_jwt(user_id: str, email: str, role: int, user_id_token: str):
-    expires = datetime.now(timezone.utc) + timedelta(minutes=120)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=expire_time)
     
     payload = {
         "user_id": user_id,
@@ -29,7 +30,10 @@ def decode_jwt(token: str):
     exp_time = datetime.strptime(decoded_token["exp_time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
     # print(type(decoded_token))
     # return decoded_token
-    return decoded_token if exp_time >= datetime.now(timezone.utc).replace(tzinfo=timezone.utc) else None
+    if exp_time >= datetime.now(timezone.utc).replace(tzinfo=timezone.utc):
+        return decoded_token 
+    else:
+        return operationStatus.get("jwtExpiredToken")
 
 # result = encode_jwt("12")
 # print(timedelta(minutes=15))
