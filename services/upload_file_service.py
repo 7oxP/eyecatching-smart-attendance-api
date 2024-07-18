@@ -68,17 +68,17 @@ async def upload_captured_image(image_file: UploadFile = File(...), user_id: int
     
     # try:
         if image_file is None:
-                return JSONResponse(
-                    {
-                        "message": "Please provide image file to be uploaded!",
-                        "operation_status": operationStatus.get("fieldValidationError")
-                    },
-                    status_code=422
-                )
+            return JSONResponse(
+                {
+                    "message": "Please provide image file to be uploaded!",
+                    "operation_status": operationStatus.get("fieldValidationError")
+                },
+                status_code=422
+            )
 
         contents = await image_file.read()
         
-        image = Image.open(BytesIO(contents))
+        image = Image.open(BytesIO(contents)).convert("RGB")
         
         img_io = BytesIO()
         image.save(img_io, format="JPEG")
