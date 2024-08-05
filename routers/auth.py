@@ -32,12 +32,16 @@ router = APIRouter(
 async def login(userData: loginSchema = Depends(validate_login_form)):
     email = userData.email
     password = userData.password
+    fcm_token = userData.fcm_token
 
     try:
         user = auth.sign_in_with_email_and_password(
             email= email,
             password = password
         )
+        
+        if fcm_token:
+            insertFcmToken = db.child("users").child(user["localId"]).update({"fcm_token":fcm_token})
 
         userData = db.child("users").child(user["localId"]).get().val()
         userRole = dict(userData)["role"]
@@ -50,6 +54,9 @@ async def login(userData: loginSchema = Depends(validate_login_form)):
             )
 
         data = dict(userData)
+
+        if 'fcm_token' in data:
+            del data["fcm_token"]
 
         return JSONResponse(
             {

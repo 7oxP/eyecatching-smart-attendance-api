@@ -40,6 +40,7 @@ def validate_add_user_form(
 class loginSchema(BaseModel):
     email: EmailStr
     password: str
+    fcm_token: Optional[str] = None
 
     model_config = {
         "json_schema_extra": {
@@ -47,14 +48,15 @@ class loginSchema(BaseModel):
                 {
                     "email": "user@xl.com",
                     "password": "p4ssw0rd",
+                    "fcm_token": "your_fcm_token"
                 }
             ]
         }
     }
 
-def validate_login_form(email: str = Form(...), password: str = Form(...)) -> loginSchema:
+def validate_login_form(email: str = Form(...), password: str = Form(...), fcm_token: Optional[str] = Form(None)) -> loginSchema:
     try:
-        return loginSchema(email=email, password=password)
+        return loginSchema(email=email, password=password, fcm_token=fcm_token)
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=e.errors())
 
