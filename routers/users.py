@@ -230,7 +230,7 @@ async def get_user_attendance_logs_by_month(month: int, authorization: str = Dep
         if not dataAttendance:
             return JSONResponse(
             {
-            "message": "Data kehadiran untuk bulan yang terpilih belum tersedia",
+            "message": "Attendance data for the selected month is not yet available",
             "operation_status": operationStatus.get("dataNotFound"),
             "data": dataAttendance,
             }, status_code=404
@@ -243,6 +243,58 @@ async def get_user_attendance_logs_by_month(month: int, authorization: str = Dep
             "data": dataAttendance,
             }, status_code=200
             )
+    
+    except Exception as err:
+        return JSONResponse(
+            {
+            "message": str(err),
+            "data": None,
+            }, status_code=500
+            )
+
+@router.delete("/users/me/attendance-logs/{user_id}")
+async def delete_latest_user_attendance_log(user_id: int, authorization: str = Depends(JWTBearer())):
+
+    try:
+        jwtPayload = decode_jwt(authorization)
+
+        if jwtPayload == operationStatus.get("jwtExpiredToken"):
+            return JSONResponse(
+                {
+                    "message": "JWT Token is expired",
+                    "operation_status": operationStatus.get("jwtExpiredToken"),
+                },
+                status_code=401
+            )
+
+        userId = jwtPayload["user_id"]
+
+        getAttendances = db.child("users_attendance_logs").child(userId).get().val()
+        extractedAttendances = dict(getAttendances)
+        
+
+        for date, attendance in extractedAttendances.items():
+            convertedTimestamp = datetime.strptime(attendance["timestamp"], "%a, %d %b %Y %H:%M")
+            currentDate = datetime.date(datetime.now())
+            print(currentDate)
+
+            if convertedTimestamp.day == currentDate.day:
+
+                userDataDeletion = db.child("users_attendance_logs").child(userId).child(currentDate).remove()
+                
+                return JSONResponse(
+                {
+                "message": "User's attendance log has been successfully deleted",
+                "operation_status": operationStatus.get("success"),
+                }, status_code=200
+                )
+            
+        return JSONResponse(
+        {
+        "message": "User's today's attendance data is not yet available",
+        "operation_status": operationStatus.get("dataNotFound"),
+        }, status_code=404
+        )
     
     except Exception as err:
         return JSONResponse(
@@ -309,10 +361,6 @@ async def get_user_attendance_logs(authorization: str = Depends(JWTBearer())):
             "data": None,
             }, status_code=500
             )
-
-@router.get("/users/{user_id}/gallery-logs")
-async def get_user_gallery_logs():
-    pass
 
 @router.get("/users/me/attendance-status")
 async def get_user_attendance_status(authorization: str = Depends(JWTBearer())):
