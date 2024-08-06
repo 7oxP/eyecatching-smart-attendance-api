@@ -280,12 +280,15 @@ async def delete_latest_user_attendance_log(user_id: int, authorization: str = D
         for date, attendance in extractedAttendances.items():
             convertedTimestamp = datetime.strptime(attendance["timestamp"], "%a, %d %b %Y %H:%M")
             currentDate = datetime.date(datetime.now())
-            print(currentDate)
 
             if convertedTimestamp.day == currentDate.day:
 
+                latestCapturedImageTime = convertedTimestamp.strftime("%Y-%m-%d_%H:%M")
+                capturedImageFile = f"output.jpg_{user_id}_{latestCapturedImageTime}"
+
                 userDataDeletion = db.child("users_attendance_logs").child(userId).child(currentDate).remove()
-                
+                capturedImageDeletion = bucket.blob(f"captured_images/{capturedImageFile}").delete()
+
                 return JSONResponse(
                 {
                 "message": "User's attendance log has been successfully deleted",
