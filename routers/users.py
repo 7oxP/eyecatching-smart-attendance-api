@@ -13,6 +13,7 @@ import os
 from dotenv import load_dotenv
 from services.upload_file_service import upload_profile_picture, upload_captured_image
 from services.get_credentials_file import get_credentials
+from services.notification_service import send_notification
 import json
 from constants.operation_status import operationStatus
 
@@ -121,7 +122,10 @@ async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form
         }
                 
         insertData = db.child("users_attendance_logs").child(nodesName).child(timestamp.strftime("%Y-%m-%d")).set(data)
-
+        fcmToken = db.child("users").child(nodesName).get().val()["fcm_token"]
+        
+        #send notification
+        sendNotification = send_notification(fcmToken)
 
         return JSONResponse(
             {
