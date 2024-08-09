@@ -5,13 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def send_notification(fcm_token: str):
+def send_notification(fcm_token: str, image_url: str):
 
     try:
         message = messaging.Message(
             notification=messaging.Notification(
                 title="Konfirmasi Kehadiran Anda",
-                body="Kami mendeteksi kehadiran Anda. Harap periksa dan verifikasi identitas Anda."
+                body="Kami mendeteksi kehadiran Anda. Harap periksa dan verifikasi identitas Anda.",
+                image=image_url,
             ),
             token=fcm_token,
         )

@@ -125,7 +125,7 @@ async def insert_user_attendance_logs(user_id: int = Form(...), name: str = Form
         fcmToken = db.child("users").child(nodesName).get().val()["fcm_token"]
         
         #send notification
-        sendNotification = send_notification(fcmToken)
+        sendNotification = send_notification(fcmToken, capturedImageURL)
 
         return JSONResponse(
             {
