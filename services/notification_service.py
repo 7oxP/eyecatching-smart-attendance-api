@@ -17,9 +17,15 @@ def send_notification(fcm_token: str, image_url: str):
 
             android=messaging.AndroidConfig(
                 notification=messaging.AndroidNotification(
-                    click_action="OPEN_ATTENDANCE_ACTIVITY"
+                    click_action="OPEN_ATTENDANCE_ACTIVITY",
                 )
             ),
+
+            data={
+                "action_yes": "YES_ACTION",
+                "action_no": "NO_ACTION"
+            },
+
             token=fcm_token,
         )
 
