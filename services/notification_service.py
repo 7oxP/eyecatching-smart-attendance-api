@@ -14,6 +14,12 @@ def send_notification(fcm_token: str, image_url: str):
                 body="Kami mendeteksi kehadiran Anda. Harap periksa dan verifikasi identitas Anda.",
                 image=image_url,
             ),
+
+            android=messaging.AndroidConfig(
+                notification=messaging.AndroidNotification(
+                    click_action="OPEN_ATTENDANCE_ACTIVITY"
+                )
+            ),
             token=fcm_token,
         )
 
