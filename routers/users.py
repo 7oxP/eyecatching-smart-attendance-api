@@ -284,7 +284,7 @@ async def delete_latest_user_attendance_log(user_id: int, authorization: str = D
             if convertedTimestamp.day == currentDate.day:
 
                 latestCapturedImageTime = convertedTimestamp.strftime("%Y-%m-%d_%H:%M")
-                capturedImageFile = f"output.jpg_{user_id}_{latestCapturedImageTime}"
+                capturedImageFile = f"notification_{user_id}_{latestCapturedImageTime}"
 
                 userDataDeletion = db.child("users_attendance_logs").child(userId).child(currentDate).remove()
                 capturedImageDeletion = bucket.blob(f"captured_images/{capturedImageFile}").delete()

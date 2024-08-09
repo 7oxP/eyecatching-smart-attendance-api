@@ -88,9 +88,9 @@ async def upload_captured_image(image_file: UploadFile = File(...), user_id: int
         timestamp = timestamp.strftime("%Y-%m-%d_%H:%M")
 
 
-        uploadImage = storage.child("captured_images/" + image_file.filename + "_" + str(user_id) + "_" + timestamp).put(file=img_io, content_type='image/jpeg')
+        uploadImage = storage.child("captured_images/notification_" + str(user_id) + "_" + timestamp).put(file=img_io, content_type='image/jpeg')
 
-        getImageURL = storage.child("captured_images/" + image_file.filename + "_" + str(user_id) + "_"  + timestamp).get_url(uuid.uuid1())
+        getImageURL = storage.child("captured_images/notification_" + str(user_id) + "_"  + timestamp).get_url(uuid.uuid1())
 
         return JSONResponse(
             {
