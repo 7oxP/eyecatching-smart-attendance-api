@@ -23,7 +23,7 @@ def send_notification(fcm_token: str):
                     "message": "Notification has been sent",
                     "operation_status": operationStatus.get("success"),
                 },
-                status_code=500
+                status_code=200
             )
     
     except Exception as err:
@@ -32,6 +32,6 @@ def send_notification(fcm_token: str):
                         "message": str(err),
                         "operation_status": operationStatus.get("sendNotificationError"),
                     },
-                    status_code=200
+                    status_code=500
                 )
 
