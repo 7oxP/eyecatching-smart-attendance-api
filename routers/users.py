@@ -280,8 +280,9 @@ async def delete_latest_user_attendance_log(user_id: int, authorization: str = D
         for date, attendance in extractedAttendances.items():
             convertedTimestamp = datetime.strptime(attendance["timestamp"], "%a, %d %b %Y %H:%M")
             currentDate = datetime.date(datetime.now())
+            formattedConvertedTimestamp = convertedTimestamp.strftime("%Y-%m-%d")
 
-            if convertedTimestamp.day == currentDate.day:
+            if formattedConvertedTimestamp == currentDate.strftime("%Y-%m-%d"):
 
                 latestCapturedImageTime = convertedTimestamp.strftime("%Y-%m-%d_%H:%M")
                 capturedImageFile = f"notification_{user_id}_{latestCapturedImageTime}"
@@ -295,7 +296,7 @@ async def delete_latest_user_attendance_log(user_id: int, authorization: str = D
                 "operation_status": operationStatus.get("success"),
                 }, status_code=200
                 )
-            
+            print("lol")
         return JSONResponse(
         {
         "message": "User's today's attendance data is not yet available",
